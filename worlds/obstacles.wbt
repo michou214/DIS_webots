@@ -96,7 +96,7 @@ DEF long_rock_3 Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick1"
   boundingObject DEF U_END_BOX Box {
     size 0.6 0.2 0.01
   }
@@ -120,7 +120,7 @@ DEF long_rock_4 Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick2"
   boundingObject DEF U_END_BOX Box {
     size 0.2 0.2 0.01
   }
@@ -144,7 +144,7 @@ DEF long_rock_6 Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick3"
   boundingObject DEF U_END_BOX Box {
     size 0.2 0.2 0.01
   }
@@ -169,7 +169,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick4"
   boundingObject DEF U_END_BOX Box {
     size 0.15 0.2 0.15
   }
@@ -194,7 +194,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick5"
   boundingObject DEF U_END_BOX Box {
     size 0.05 0.2 0.05
   }
@@ -219,7 +219,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick6"
   boundingObject DEF U_END_BOX Box {
     size 0.05 0.2 0.05
   }
@@ -244,7 +244,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick7"
   boundingObject DEF U_END_BOX Box {
     size 0.05 0.2 0.05
   }
@@ -269,7 +269,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick8"
   boundingObject DEF U_END_BOX Box {
     size 0.05 0.2 0.05
   }
@@ -294,7 +294,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick9"
   boundingObject DEF U_END_BOX Box {
     size 0.05 0.2 0.05
   }
@@ -319,7 +319,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick10"
   boundingObject DEF U_END_BOX Box {
     size 0.05 0.2 0.05
   }
@@ -343,7 +343,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick11"
   boundingObject DEF U_END_BOX Box {
     size 0.15 0.2 0.15
   }
@@ -368,7 +368,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick12"
   boundingObject DEF U_END_BOX Box {
     size 0.15 0.2 0.15
   }
@@ -392,7 +392,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick13"
   boundingObject DEF U_END_BOX Box {
     size 0.15 0.2 0.15
   }
@@ -416,7 +416,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick14"
   boundingObject DEF U_END_BOX Box {
     size 0.15 0.2 0.15
   }
@@ -440,7 +440,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick15"
   boundingObject DEF U_END_BOX Box {
     size 0.15 0.2 0.15
   }
@@ -464,7 +464,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick16"
   boundingObject DEF U_END_BOX Box {
     size 0.15 0.2 0.15
   }
@@ -488,7 +488,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick17"
   boundingObject DEF U_END_BOX Box {
     size 0.15 0.2 0.37
   }
@@ -513,7 +513,7 @@ DEF rock Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick18"
   boundingObject DEF U_END_BOX Box {
     size 0.15 0.2 0.15
   }

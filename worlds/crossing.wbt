@@ -96,7 +96,7 @@ DEF long_rock_3 Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick1"
   boundingObject DEF U_END_BOX Box {
     size 0.6 0.2 0.01
   }
@@ -120,7 +120,7 @@ DEF long_rock_4 Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick2"
   boundingObject DEF U_END_BOX Box {
     size 0.2 0.2 0.01
   }
@@ -144,7 +144,7 @@ DEF long_rock_6 Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick3"
   boundingObject DEF U_END_BOX Box {
     size 0.2 0.2 0.01
   }
@@ -168,7 +168,7 @@ DEF long_rock_8 Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick4"
   boundingObject DEF U_END_BOX Box {
     size 0.6 0.2 0.01
   }
@@ -192,7 +192,7 @@ DEF long_rock_9 Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick5"
   boundingObject DEF U_END_BOX Box {
     size 0.2 0.2 0.01
   }
@@ -216,7 +216,7 @@ DEF long_rock_11 Solid {
       }
     }
   ]
-  name "short brick"
+  name "brick6"
   boundingObject DEF U_END_BOX Box {
     size 0.2 0.2 0.01
   }
