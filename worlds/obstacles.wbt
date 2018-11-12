@@ -523,7 +523,7 @@ Supervisor {
     DEF emitter Emitter {
     }
   ]
-  name "super1"
+  name "super0"
   controller "flock_super"
 }
 DEF epuck0 E-puck {
