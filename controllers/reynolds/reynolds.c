@@ -8,7 +8,7 @@
 /* Last revision:12-Oct-15 by Florian Maushart				     */
 /*****************************************************************************/
 
-
+// Add a text to make a test on Github 
 
 #include <stdio.h>
 #include <math.h>
