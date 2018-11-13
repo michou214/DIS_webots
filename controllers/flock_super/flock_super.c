@@ -65,19 +65,19 @@ unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
  */
 void init(void)
 {
-	//Seed the random number generator
+	// Seed the random number generator
 	const unsigned long seed = mix(clock(), time(NULL), getpid());
 	srand(seed);
 	
-	//Unique identifier of the supervisor
+	// Unique identifier of the supervisor
 	super_name = (char*) wb_robot_get_name();
 	sscanf(super_name, "super%d", &offset);
 	offset *= FLOCK_SIZE;
 	
-	//Radio emitter
+	// Radio emitter
 	emitter = wb_robot_get_device("emitter");
 	
-	//Robots position
+	// Robots position
 	char robot_name[7];
 	for (unsigned int i = 0; i < FLOCK_SIZE; i++) {
 		sprintf(robot_name, "epuck%d", i+offset);
@@ -92,16 +92,16 @@ void init(void)
  */
 int main(int argc, char *args[])
 {
-	//Initialization
+	// Initialization
 	wb_robot_init();
 	init();
 	
-	//Simulation loop
+	// Simulation loop
 	while (wb_robot_step(TIME_STEP) != -1) {
 		
 	}
 	
-    //Clean up and exit
+    // Clean up and exit
     wb_robot_cleanup();
     return 0;
 }
