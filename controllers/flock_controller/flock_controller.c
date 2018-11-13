@@ -137,6 +137,7 @@ void init(void)
 	// Unique identifier of the robot
 	robot_name = (char*) wb_robot_get_name();
 	sscanf(robot_name, "epuck%d", &robot_id);
+	robot_id = robot_id%FLOCK_SIZE; // normalize between 0 and FLOCK_SIZE-1
 	
 	// Radio emitter and receiver
 	emitter = wb_robot_get_device("emitter");
@@ -255,7 +256,7 @@ void process_received_ping_messages(void)
 	double theta;
 	double range;
 	char *inbuffer;	// Buffer for the receiver node
-	int other_robot_id;
+	unsigned int my_id, other_robot_id;
 	
 	while (wb_receiver_get_queue_length(receiver) > 0) {
 		inbuffer = (char*) wb_receiver_get_data(receiver);
@@ -268,20 +269,27 @@ void process_received_ping_messages(void)
 		theta = theta + my_position[2]; // Relative theta
 		range = sqrt((1/message_rssi));
 		
-		// Teammate's ID is retreived from the robot's name contained in the message
+		// Original robot's identifier
+		sscanf(robot_name, "epuck%d", &my_id);
+		// Teammate's ID is retrieved from the robot's name contained in the message
 		sscanf(inbuffer, "epuck%d", &other_robot_id);
 		
-		/* Position update */
-		prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
-		prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
-		
-		relative_pos[other_robot_id][0] =  range*cos(theta); // Relative x-coordinate
-		relative_pos[other_robot_id][1] = -range*sin(theta); // Relative y-coordinate
-		
-		//printf("Robot %s, from robot %d, x=%g, y=%g, theta=%g, my_theta=%g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x)*180.0/3.141592,my_position[2]*180.0/3.141592);
-		
-		relative_speed[other_robot_id][0] = relative_speed[other_robot_id][0]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0]);
-		relative_speed[other_robot_id][1] = relative_speed[other_robot_id][1]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1]);
+		// If robots are in the same team
+		if ((int)my_id/FLOCK_SIZE == (int)other_robot_id/FLOCK_SIZE) {
+			other_robot_id = other_robot_id%FLOCK_SIZE; // normalize between 0 and FLOCK_SIZE-1
+			
+			/* Position update */
+			prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
+			prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
+			
+			relative_pos[other_robot_id][0] =  range*cos(theta); // Relative x-coordinate
+			relative_pos[other_robot_id][1] = -range*sin(theta); // Relative y-coordinate
+			
+			//printf("Robot %s, from robot %d, x=%g, y=%g, theta=%g, my_theta=%g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x)*180.0/3.141592,my_position[2]*180.0/3.141592);
+			
+			relative_speed[other_robot_id][0] = relative_speed[other_robot_id][0]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0]);
+			relative_speed[other_robot_id][1] = relative_speed[other_robot_id][1]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1]);
+		}
 		
 		wb_receiver_next_packet(receiver);
 	}
