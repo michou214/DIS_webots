@@ -137,7 +137,7 @@ void init(void)
 	// Unique identifier of the robot
 	robot_name = (char*) wb_robot_get_name();
 	sscanf(robot_name, "epuck%d", &robot_id);
-	robot_id = robot_id%FLOCK_SIZE; // normalize between 0 and FLOCK_SIZE-1
+	robot_id %= FLOCK_SIZE; // Normalize between 0 and FLOCK_SIZE-1
 	
 	// Radio emitter and receiver
 	emitter = wb_robot_get_device("emitter");
@@ -202,7 +202,7 @@ void compute_wheel_speeds(int *msl, int *msr)
 	*msr = (u + AXLE_LENGTH*w/2.0) * (1000.0/WHEEL_RADIUS);
 	limit(msl, MAX_SPEED);
 	limit(msr, MAX_SPEED);
-	//printf("bearing = %f, u = %f, w = %f, msl = %f, msr = %f\n", bearing, u, w, msl, msr);
+	//printf("id = %d, bearing = %f, u = %f, w = %f, msl = %d, msr = %d\n", robot_id, bearing, u, w, *msl, *msr);
 }
 
 /*
@@ -228,8 +228,10 @@ void update_self_motion(const int msl, const int msr)
 	my_position[2] += dtheta;
 	
 	// Keep orientation within [0, 2pi]
-	if (my_position[2] > 2*M_PI) my_position[2] -= 2.0*M_PI;
-	if (my_position[2] < 0)      my_position[2] += 2.0*M_PI;
+	if (my_position[2] > 2*M_PI)
+		my_position[2] -= 2.0*M_PI;
+	if (my_position[2] < 0)
+		my_position[2] += 2.0*M_PI;
 }
 
 /*
@@ -262,11 +264,11 @@ void process_received_ping_messages(void)
 		inbuffer = (char*) wb_receiver_get_data(receiver);
 		message_direction = wb_receiver_get_emitter_direction(receiver);
 		message_rssi = wb_receiver_get_signal_strength(receiver);
-		double x = message_direction[1];
-		double y = message_direction[2];
+		const double x = message_direction[0]; // Relative X in Webots reference frame
+		const double y = message_direction[2]; // Relative Z in Webots reference frame
 		
 		theta =	-atan2(y, x);
-		theta = theta + my_position[2]; // Relative theta
+		theta = theta + my_position[2]; // Absolute theta
 		range = sqrt((1/message_rssi));
 		
 		// Original robot's identifier
@@ -276,7 +278,7 @@ void process_received_ping_messages(void)
 		
 		// If robots are in the same team
 		if ((int)my_id/FLOCK_SIZE == (int)other_robot_id/FLOCK_SIZE) {
-			other_robot_id = other_robot_id%FLOCK_SIZE; // normalize between 0 and FLOCK_SIZE-1
+			other_robot_id %= FLOCK_SIZE; // Normalize between 0 and FLOCK_SIZE-1
 			
 			/* Position update */
 			prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
@@ -326,8 +328,8 @@ void reynolds_rules(void)
 			rel_avg_loc[j] /= n_robots-1;
 			rel_avg_speed[j] /= n_robots-1;
 		} else {
-			rel_avg_loc[j] = speed[robot_id][j];
-			rel_avg_speed[j] = my_position[j];
+			rel_avg_loc[j] = my_position[j];
+			rel_avg_speed[j] = speed[robot_id][j];
 		}
 	}
 	
@@ -381,7 +383,8 @@ int main(int argc, char *args[])
 {
 	// Variables declaration
 	unsigned int i;            // Loop counter
-	int msl = 0, msr = 0;      // Wheel speeds for differential drive
+	//int msl = 0, msr = 0;      // Wheel speeds for differential drive
+	int msl = 100, msr = -100; // Wheel speeds for differential drive
 	float msl_w, msr_w;        // Wheel speeds for rotational motors
 	int bmsl, bmsr;            // Braitenberg parameters
 	int distances[NB_SENSORS]; // Array for the distance sensor readings
@@ -422,10 +425,10 @@ int main(int argc, char *args[])
 		
 		update_self_motion(msl, msr);
 		
-		process_received_ping_messages();
-		
 		speed[robot_id][0] = (1/DELTA_T)*(my_position[0]-prev_my_position[0]);
 		speed[robot_id][1] = (1/DELTA_T)*(my_position[1]-prev_my_position[1]);
+		
+		process_received_ping_messages();
 		
 		// Reynold's rules with all previous info (updates the speed[][] table)
 		reynolds_rules();
@@ -444,6 +447,7 @@ int main(int argc, char *args[])
 		msr += bmsr;
 		limit(&msl, MAX_SPEED);
 		limit(&msr, MAX_SPEED);
+		printf("id = %d, msl = %d, msr = %d\n", robot_id, msl, msr);
 		
 		// Set speed
 		msl_w = msl*MAX_SPEED_MOTOR/1000;
