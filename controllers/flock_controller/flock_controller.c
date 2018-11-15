@@ -80,7 +80,6 @@ static char* robot_name;      // Robot's unique identification name
 static unsigned int robot_id; // Robot's unique identification number
 
 static WbDeviceTag left_motor, right_motor;     // Rotational motors
-static WbDeviceTag left_encoder, right_encoder; // Position sensors
 static WbDeviceTag emitter, receiver;           // Radio sensors
 static WbDeviceTag sensors[NB_SENSORS];         // Distance sensors
 
@@ -147,10 +146,6 @@ void init(void)
 	// Wheel motors and encoders
     left_motor = wb_robot_get_device("left wheel motor");
 	right_motor = wb_robot_get_device("right wheel motor");
-	left_encoder = wb_robot_get_device("left wheel sensor");
-	right_encoder = wb_robot_get_device("right wheel sensor");
-    wb_position_sensor_enable( left_encoder, TIME_STEP);
-    wb_position_sensor_enable(right_encoder, TIME_STEP);
 	wb_motor_set_position( left_motor, INFINITY);
 	wb_motor_set_position(right_motor, INFINITY);
 	wb_motor_set_velocity( left_motor, 0);
@@ -188,7 +183,7 @@ void compute_wheel_speeds(int *msl, int *msr)
 	
 	// Proportional controller on tangential and angular speeds
 	float Ku = 0.2; // Forward control coefficient
-	float Kw = 1; // Rotational control coefficient
+	float Kw = 1.0; // Rotational control coefficient
 	float range = sqrtf(x*x + z*z); // Distance to the wanted position
 	float bearing = -atan2(x, z); // Orientation of the wanted position
 	
@@ -281,13 +276,16 @@ void process_received_ping_messages(void)
 			other_robot_id %= FLOCK_SIZE; // Normalize between 0 and FLOCK_SIZE-1
 			
 			/* Position update */
+			
 			prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
 			prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
 			
 			relative_pos[other_robot_id][0] =  range*cos(theta); // Relative x-coordinate
 			relative_pos[other_robot_id][1] = -range*sin(theta); // Relative y-coordinate
 			
-			//printf("Robot %s, from robot %d, x=%g, y=%g, theta=%g, my_theta=%g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x)*180.0/3.141592,my_position[2]*180.0/3.141592);
+			//printf("Robot %d, from robot %d, x=%g, y=%g, theta=%g, my_theta=%g\n",robot_id,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x)*180.0/3.141592,my_position[2]*180.0/3.141592);
+			
+			/* Speed update */
 			
 			relative_speed[other_robot_id][0] = relative_speed[other_robot_id][0]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0]);
 			relative_speed[other_robot_id][1] = relative_speed[other_robot_id][1]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1]);
@@ -383,7 +381,6 @@ int main(int argc, char *args[])
 {
 	// Variables declaration
 	unsigned int i;            // Loop counter
-	//int msl = 0, msr = 0;      // Wheel speeds for differential drive
 	int msl = 100, msr = -100; // Wheel speeds for differential drive
 	float msl_w, msr_w;        // Wheel speeds for rotational motors
 	int bmsl, bmsr;            // Braitenberg parameters
@@ -401,7 +398,8 @@ int main(int argc, char *args[])
 		sum_sensors = 0;
 		max_sens = 0;
 		
-		/* Braitenberg */
+		/* Braitenberg obstacle avoidance */
+		
 		for (i = 0; i < NB_SENSORS; i++) {
 			distances[i] = wb_distance_sensor_get_value(sensors[i]); // Read sensor values
 			sum_sensors += distances[i]; // Add up sensor values
@@ -416,10 +414,8 @@ int main(int argc, char *args[])
 		bmsl /= MIN_SENS; bmsr /= MIN_SENS;
 		bmsl += 66; bmsr += 72;
 		
-		/* Send and get information */
-		send_ping(); // Sending a ping to other robots, so they can measure their distance to this robot
+		/* Compute self position */
 		
-		// Compute self position
 		prev_my_position[0] = my_position[0];
 		prev_my_position[1] = my_position[1];
 		
@@ -428,7 +424,15 @@ int main(int argc, char *args[])
 		speed[robot_id][0] = (1/DELTA_T)*(my_position[0]-prev_my_position[0]);
 		speed[robot_id][1] = (1/DELTA_T)*(my_position[1]-prev_my_position[1]);
 		
+		/* Send and get information */
+		
+		// Sending a ping to other robots, so they can measure their distance to this robot
+		send_ping();
+		
+		// Receiving ping from other robots, so this robot can measure its distance to them
 		process_received_ping_messages();
+		
+		/* Compute self speed */
 		
 		// Reynold's rules with all previous info (updates the speed[][] table)
 		reynolds_rules();
@@ -438,8 +442,8 @@ int main(int argc, char *args[])
 		
 		// Adapt speed instinct to distance sensor values
 		if (sum_sensors > NB_SENSORS*MIN_SENS) {
-			msl -= msl*max_sens/(2*MAX_SENS);
-			msr -= msr*max_sens/(2*MAX_SENS);
+			msl -= msl*max_sens/(float)(2*MAX_SENS);
+			msr -= msr*max_sens/(float)(2*MAX_SENS);
 		}
 		
 		// Add Braitenberg
@@ -450,8 +454,8 @@ int main(int argc, char *args[])
 		printf("id = %d, msl = %d, msr = %d\n", robot_id, msl, msr);
 		
 		// Set speed
-		msl_w = msl*MAX_SPEED_MOTOR/1000;
-		msr_w = msr*MAX_SPEED_MOTOR/1000;
+		msl_w = msl*MAX_SPEED_MOTOR/1000.0;
+		msr_w = msr*MAX_SPEED_MOTOR/1000.0;
 		wb_motor_set_velocity( left_motor, msl_w);
 		wb_motor_set_velocity(right_motor, msr_w);
 	}
