@@ -9,6 +9,7 @@
 
 #include <webots/supervisor.h>
 #include <webots/robot.h>
+#include <webots/nodes.h>
 #include <webots/emitter.h>
 
 /*** Standard libraries ***/
@@ -71,8 +72,24 @@ void init(void)
 	
 	// Unique identifier of the supervisor
 	super_name = (char*) wb_robot_get_name();
-	sscanf(super_name, "super%d", &offset);
-	offset *= FLOCK_SIZE;
+	
+	// Offset to the first robot in the team corresponding to this supervisor
+	WbNodeRef root = wb_supervisor_node_get_root();
+	WbFieldRef children = wb_supervisor_node_get_field(root, "children");
+	unsigned int n = wb_supervisor_field_get_count(children);
+	unsigned int nb_robots = 0;
+	for (unsigned int i = 0; i < n; i++) {
+		WbNodeRef node = wb_supervisor_field_get_mf_node(children, i);
+		if (wb_supervisor_node_get_type(node) == WB_NODE_ROBOT) {
+			nb_robots++;
+		}
+	}
+	if (nb_robots > FLOCK_SIZE) {
+		sscanf(super_name, "super%d", &offset);
+		offset *= FLOCK_SIZE;
+	} else {
+		offset = 0;
+	}
 	
 	// Radio emitter
 	emitter = wb_robot_get_device("emitter");
