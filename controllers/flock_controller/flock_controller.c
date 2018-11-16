@@ -83,9 +83,9 @@ static const float migration[2] = {25, -25}; // Migration vector for world obsta
 static char* robot_name;      // Robot's unique identification name
 static unsigned int robot_id; // Robot's unique identification number
 
-static WbDeviceTag left_motor, right_motor;     // Rotational motors
-static WbDeviceTag emitter, receiver;           // Radio sensors
-static WbDeviceTag sensors[NB_SENSORS];         // Distance sensors
+static WbDeviceTag left_motor, right_motor; // Rotational motors
+static WbDeviceTag emitter, receiver;       // Radio sensors
+static WbDeviceTag sensors[NB_SENSORS];     // Distance sensors
 
 static float      my_position[3];              // X, Z, Theta of the current robot
 static float prev_my_position[3];              // X, Z, Theta of the current robot at the previous time step
@@ -207,6 +207,7 @@ void compute_wheel_speeds(int *msl, int *msr)
  */
 void update_self_motion(const int msl, const int msr)
 {
+	// Previous orientation of the robot
 	const float theta = my_position[2];
 	
 	// Compute deltas of the robot
@@ -258,12 +259,14 @@ void process_received_ping_messages(void)
 	unsigned int my_id, other_robot_id;
 	
 	while (wb_receiver_get_queue_length(receiver) > 0) {
+		// Retrieve information from message
 		inbuffer = (char*) wb_receiver_get_data(receiver);
 		message_direction = wb_receiver_get_emitter_direction(receiver);
 		message_rssi = wb_receiver_get_signal_strength(receiver);
 		const double x = message_direction[0]; // Relative X in Webots reference frame
 		const double y = message_direction[2]; // Relative Z in Webots reference frame
 		
+		// Compute orientation and distance from teammate to robot
 		theta =	-atan2(y, x);
 		theta = theta + my_position[2]; // Absolute theta
 		range = sqrt((1/message_rssi));
@@ -304,11 +307,11 @@ void reynolds_rules(void)
 {
 	unsigned int i, j;  			// Loop counters
 	unsigned int n_robots = 1;      // Number of neighbors
-	float rel_avg_loc[2] = {0,0};   // Flock average relative positions
+	float rel_avg_loc  [2] = {0,0}; // Flock average relative positions
 	float rel_avg_speed[2] = {0,0}; // Flock average relative speeds
-	float cohesion[2] = {0,0};      // Aggregation behavior
-	float dispersion[2] = {0,0};    // Separation behavior
-	float consistency[2] = {0,0};   // Alignment behavior
+	float cohesion     [2] = {0,0}; // Aggregation behavior
+	float dispersion   [2] = {0,0}; // Separation behavior
+	float consistency  [2] = {0,0}; // Alignment behavior
 	
 	/* Compute averages over the flockmates in the local neighborhood */
 	for (i = 0; i < FLOCK_SIZE; i++) {
@@ -317,7 +320,7 @@ void reynolds_rules(void)
 		// If robot i is in the local neighborhood (Euclidean distance)
 		if (sqrt(pow(relative_pos[i][0],2)+pow(relative_pos[i][1],2)) < NEIGHBORHOOD_THRESHOLD) {
 			for (j = 0; j < 2; j++) {
-				rel_avg_loc[j] += relative_pos[i][j];
+				rel_avg_loc[j]   += relative_pos[i][j];
 				rel_avg_speed[j] += relative_speed[i][j];
 			}
 			n_robots++;
@@ -325,10 +328,10 @@ void reynolds_rules(void)
 	}
 	for (j = 0; j < 2; j++) {
 		if (n_robots > 1) {
-			rel_avg_loc[j] /= n_robots-1;
+			rel_avg_loc[j]   /= n_robots-1;
 			rel_avg_speed[j] /= n_robots-1;
 		} else {
-			rel_avg_loc[j] = my_position[j];
+			rel_avg_loc[j]   = my_position[j];
 			rel_avg_speed[j] = speed[robot_id][j];
 		}
 	}
@@ -358,7 +361,7 @@ void reynolds_rules(void)
 		consistency[j] = rel_avg_speed[j]; // Average relative speed
 	}
 	
-	// Aggregation of all behaviors with relative influence determined by weights
+	/* Aggregation of all behaviors with relative influence determined by weights */
 	for (j = 0; j < 2; j++) {
 		speed[robot_id][j]  = cohesion   [j] * RULE1_WEIGHT;
 		speed[robot_id][j] += dispersion [j] * RULE2_WEIGHT;
@@ -366,7 +369,7 @@ void reynolds_rules(void)
 	}
 	speed[robot_id][1] *= -1; // y-axis of Webots is inverted
 	
-	// Move the robot according to some migration rule
+	/* Move the robot according to some migration rule */
 	if (MIGRATORY_URGE == 0) {
 		speed[robot_id][0] += 0.01*cos(my_position[2] + M_PI/2);
 		speed[robot_id][1] += 0.01*sin(my_position[2] + M_PI/2);
