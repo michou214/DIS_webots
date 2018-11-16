@@ -179,7 +179,7 @@ void compute_wheel_speeds(int *msl, int *msr)
 	// Compute wanted position from Reynold's speed and current location
 	float x =  speed[robot_id][0]*cosf(my_position[2]) + speed[robot_id][1]*sinf(my_position[2]); // x in robot coordinates
 	float z = -speed[robot_id][0]*sinf(my_position[2]) + speed[robot_id][1]*cosf(my_position[2]); // z in robot coordinates
-	//printf("id = %d, x = %f, y = %f\n", robot_id, x, z);
+	//printf("[%s] x = %f, y = %f\n", robot_name, x, z);
 	
 	// Proportional controller on tangential and angular speeds
 	float Ku = 0.2; // Forward control coefficient
@@ -197,7 +197,7 @@ void compute_wheel_speeds(int *msl, int *msr)
 	*msr = (u + AXLE_LENGTH*w/2.0) * (1000.0/WHEEL_RADIUS);
 	limit(msl, MAX_SPEED);
 	limit(msr, MAX_SPEED);
-	//printf("id = %d, bearing = %f, u = %f, w = %f, msl = %d, msr = %d\n", robot_id, bearing, u, w, *msl, *msr);
+	//printf("[%s] bearing = %f, u = %f, w = %f, msl = %d, msr = %d\n", robot_name, bearing, u, w, *msl, *msr);
 }
 
 /*
@@ -283,7 +283,7 @@ void process_received_ping_messages(void)
 			relative_pos[other_robot_id][0] =  range*cos(theta); // Relative x-coordinate
 			relative_pos[other_robot_id][1] = -range*sin(theta); // Relative y-coordinate
 			
-			//printf("Robot %d, from robot %d, x=%g, y=%g, theta=%g, my_theta=%g\n",robot_id,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x)*180.0/3.141592,my_position[2]*180.0/3.141592);
+			//printf("[%s] from %s, x = %f, y = %f, theta = %f, my_theta = %f\n", robot_name, inbuffer, relative_pos[other_robot_id][0], relative_pos[other_robot_id][1], -atan2(y,x)*180.0/3.141592, my_position[2]*180.0/3.141592);
 			
 			/* Speed update */
 			
@@ -451,7 +451,7 @@ int main(int argc, char *args[])
 		msr += bmsr;
 		limit(&msl, MAX_SPEED);
 		limit(&msr, MAX_SPEED);
-		printf("id = %d, msl = %d, msr = %d\n", robot_id, msl, msr);
+		printf("[%s] msl = %d, msr = %d\n", robot_name, msl, msr);
 		
 		// Set speed
 		msl_w = msl*MAX_SPEED_MOTOR/1000.0;

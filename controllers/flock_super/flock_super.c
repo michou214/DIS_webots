@@ -27,16 +27,26 @@
 #define TIME_STEP  64 // Step duration [ms]
 #define FLOCK_SIZE 5  // Number of robots in flock
 
+#define VERBOSE 1 // If messages should be printed
+
 /*** Global constants ***/
 
 /*** Global variables ***/
 
-static char* super_name;
-static unsigned int offset;
-static WbDeviceTag emitter;
+static char* super_name;    // Supervisor's unique identification name
+static unsigned int offset; // Offset to the supervisor's flock
+
+static WbDeviceTag emitter;                       // Radio node
 static WbNodeRef  robots            [FLOCK_SIZE]; // Robots nodes
 static WbFieldRef robots_translation[FLOCK_SIZE]; // Robots translation fields
 static WbFieldRef robots_rotation   [FLOCK_SIZE]; // Robots rotation fields
+static float loc[FLOCK_SIZE][3];		          // Robots location in the flock
+
+static float perf_orientation; // Performance metric for orientation
+static float perf_cohesion;    // Performance metric for cohesion
+static float perf_velocity;    // Performance metric for velocity
+static float perf_instant;     // Performance instant
+static float perf_overall;     // Performance overall
 
 /*** Data types definition ***/
 
@@ -44,9 +54,11 @@ static WbFieldRef robots_rotation   [FLOCK_SIZE]; // Robots rotation fields
 
 /*** Functions implementation ***/
 
-// Robert Jenkins' 96 bit Mix Function
-// http://web.archive.org/web/20070111091013/http://www.concentric.net/~Ttwang/tech/inthash.htm
-// http://web.archive.org/web/20070110173527/http://burtleburtle.net:80/bob/hash/doobs.html
+/*
+ * Robert Jenkins' 96 bit Mix Function
+ * http://web.archive.org/web/20070111091013/http://www.concentric.net/~Ttwang/tech/inthash.htm
+ * http://web.archive.org/web/20070110173527/http://burtleburtle.net:80/bob/hash/doobs.html
+ */
 unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
 {
     a=a-b;  a=a-c;  a=a^(c >> 13);
@@ -91,10 +103,10 @@ void init(void)
 		offset = 0;
 	}
 	
-	// Radio emitter
+	// Radio emitter node
 	emitter = wb_robot_get_device("emitter");
 	
-	// Robots position
+	// Robots position fields
 	char robot_name[7];
 	for (unsigned int i = 0; i < FLOCK_SIZE; i++) {
 		sprintf(robot_name, "epuck%d", i+offset);
@@ -105,18 +117,102 @@ void init(void)
 }
 
 /*
+ * Get the robots location.
+ */
+void location(void)
+{
+	for (unsigned int i = 0; i < FLOCK_SIZE; i++) {
+		loc[i][0] = wb_supervisor_field_get_sf_vec3f(robots_translation[i])[0]; // X
+		loc[i][1] = wb_supervisor_field_get_sf_vec3f(robots_translation[i])[2]; // Z
+		loc[i][2] = wb_supervisor_field_get_sf_rotation(robots_rotation[i])[3]; // Theta
+	}
+}
+
+/*
+ * Compute the flock performance.
+ */
+void performance(void)
+{
+	perf_orientation = 0;
+	perf_cohesion    = 0;
+	perf_velocity    = 0;
+	for (unsigned int i = 0; i < FLOCK_SIZE; i++) {
+		perf_orientation += 0;
+		perf_cohesion    += 0;
+		perf_velocity    += 0;
+	}
+	perf_orientation = perf_orientation/FLOCK_SIZE;
+	perf_cohesion    = 1/(1+perf_cohesion/FLOCK_SIZE);
+	perf_velocity    = 0;
+	perf_instant = perf_orientation*perf_cohesion*perf_velocity;
+	perf_overall += perf_instant;
+	if (VERBOSE) {
+		printf("[%s] performance = %f\n", super_name, perf_instant);
+	}
+}
+
+/*
+ * Store the flock instant performance.
+ */
+void log_perf_instant(void)
+{
+	char filename[256];
+	sprintf(filename, "../../data/performance_instant/%s.txt", super_name);
+	FILE* file = fopen(filename, "a");
+	fprintf(file, "%f %f %f %f\n", perf_orientation, perf_cohesion, perf_velocity, perf_instant);
+	fflush(file);
+	fclose(file);
+}
+
+/*
+ * Store the flock overall performance.
+ */
+void log_perf_overall(void)
+{
+	char filename[256];
+	sprintf(filename, "../../data/performance_overall/%s.txt", super_name);
+	FILE* file = fopen(filename, "w");
+	fprintf(file, "%f\n", perf_overall);
+	fflush(file);
+	fclose(file);
+}
+
+/*
  * Main function.
  */
 int main(int argc, char *args[])
 {
+	// Variables declaration
+	unsigned int time_steps; // Iterations counter
+	
 	// Initialization
 	wb_robot_init();
 	init();
 	
+	// Variables initialization
+	time_steps = 0;
+	perf_overall = 0;
+	
 	// Simulation loop
 	while (wb_robot_step(TIME_STEP) != -1) {
-		
+		// Update robots location
+		location();
+		// Compute performance metrics
+		performance();
+		// Store performance metrics
+		log_perf_instant();
+		// Increase iterations counter
+		time_steps++;
 	}
+	
+	// Overall performance
+	perf_overall /= time_steps;
+	if (VERBOSE) {
+		printf("[%s] overall performance = %f\n", super_name, perf_overall);
+	}
+	
+	// Result storage
+	log_perf_overall();
 	
     // Clean up and exit
     wb_robot_cleanup();
