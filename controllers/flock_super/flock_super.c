@@ -31,6 +31,10 @@
 
 /*** Global constants ***/
 
+static const char directory_results[]   = "../../results";       // Directory for performance results
+static const char folder_perf_instant[] = "performance_instant"; // Folder name for instant performance results
+static const char folder_perf_overall[] = "performance_overall"; // Folder name for overall performance results
+
 /*** Global variables ***/
 
 static char* super_name;    // Supervisor's unique identification name
@@ -163,11 +167,11 @@ void log_clear(void)
 	char filename[256];
 	FILE* file;
 	
-	sprintf(filename, "../../data/performance_instant/%s.txt", super_name);
+	sprintf(filename, "%s/%s/%s.txt", directory_results, folder_perf_instant, super_name);
 	file = fopen(filename, "w");
 	fclose(file);
 	
-	sprintf(filename, "../../data/performance_overall/%s.txt", super_name);
+	sprintf(filename, "%s/%s/%s.txt", directory_results, folder_perf_overall, super_name);
 	file = fopen(filename, "w");
 	fclose(file);
 }
@@ -178,7 +182,7 @@ void log_clear(void)
 void log_perf_instant(void)
 {
 	char filename[256];
-	sprintf(filename, "../../data/performance_instant/%s.txt", super_name);
+	sprintf(filename, "%s/%s/%s.txt", directory_results, folder_perf_instant, super_name);
 	FILE* file = fopen(filename, "a");
 	fprintf(file, "%f %f %f %f\n", perf_orientation, perf_cohesion, perf_velocity, perf_instant);
 	fflush(file);
@@ -191,7 +195,7 @@ void log_perf_instant(void)
 void log_perf_overall(void)
 {
 	char filename[256];
-	sprintf(filename, "../../data/performance_overall/%s.txt", super_name);
+	sprintf(filename, "%s/%s/%s.txt", directory_results, folder_perf_overall, super_name);
 	FILE* file = fopen(filename, "w");
 	fprintf(file, "%f\n", perf_overall);
 	fflush(file);
