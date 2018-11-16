@@ -72,7 +72,8 @@ typedef struct Vector3D Vec3D;
 
 /*** Global constants ***/
 
-static const int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // Weights for obstacle avoidance
+//static const int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // Weights for obstacle avoidance
+static const float e_puck_matrix[16] = {-1.0,-1.0,0.5,0.0,0.0,-0.5,0.0,0.0,-1.3,-1.3,-0.5,0.0,0.0,0.05,-0.75,-0.75}; // Weights for obstacle avoidance
 
 /*** Global variables ***/
 
@@ -90,7 +91,8 @@ static float prev_relative_pos[FLOCK_SIZE][3]; // Relative X, Z, Theta of all ro
 static float          speed[FLOCK_SIZE][2];    // Speed of all robots
 static float relative_speed[FLOCK_SIZE][2];    // Speed of all robots relative to the current robot
 
-static float migr[2] = {25, -25}; // Migration vector
+static float migr[2] = {25, -25}; // Migration vector for world obstacles
+//static float migr[2] = {1000, 0}; // Migration vector for world crossing
 
 /*** Functions declaration ***/
 
@@ -224,9 +226,9 @@ void update_self_motion(const int msl, const int msr)
 	
 	// Keep orientation within [0, 2pi]
 	if (my_position[2] > 2*M_PI)
-		my_position[2] -= 2.0*M_PI;
+		my_position[2] -= 2*M_PI;
 	if (my_position[2] < 0)
-		my_position[2] += 2.0*M_PI;
+		my_position[2] += 2*M_PI;
 }
 
 /*
@@ -248,11 +250,11 @@ void send_ping(void)
  */
 void process_received_ping_messages(void)
 {
+	char *inbuffer;	// Buffer for the receiver node
 	const double *message_direction; // Direction of the emitter with respect to the receiver's coordinate system
 	double message_rssi; // Received Signal Strength Indicator
 	double theta;
 	double range;
-	char *inbuffer;	// Buffer for the receiver node
 	unsigned int my_id, other_robot_id;
 	
 	while (wb_receiver_get_queue_length(receiver) > 0) {
@@ -381,7 +383,7 @@ int main(int argc, char *args[])
 {
 	// Variables declaration
 	unsigned int i;            // Loop counter
-	int msl = 100, msr = -100; // Wheel speeds for differential drive
+	int msl, msr;              // Wheel speeds for differential drive
 	float msl_w, msr_w;        // Wheel speeds for rotational motors
 	int bmsl, bmsr;            // Braitenberg parameters
 	int distances[NB_SENSORS]; // Array for the distance sensor readings
@@ -391,6 +393,10 @@ int main(int argc, char *args[])
 	// Initialization
 	wb_robot_init();
 	init();
+	
+	// Variables initialization
+	my_position[0] = 0; my_position[1] = 0; my_position[2] = 0;
+	msl = 0; msr = 0;
 	
 	// Simulation loop
 	while (wb_robot_step(TIME_STEP) != -1) {
@@ -406,13 +412,15 @@ int main(int argc, char *args[])
 			max_sens = distances[i] > max_sens ? distances[i] : max_sens; // Check if new highest sensor value
 			
 			// Weighted sum of distance sensor values for Braitenberg vehicle
-			bmsr += e_puck_matrix[i]            * distances[i];
-			bmsl += e_puck_matrix[i+NB_SENSORS] * distances[i];
+			//bmsr += e_puck_matrix[i]            * distances[i];
+			//bmsl += e_puck_matrix[i+NB_SENSORS] * distances[i];
+			bmsr += e_puck_matrix[i]            * (distances[i]/(float)MAX_SENS) * MAX_SPEED;
+			bmsl += e_puck_matrix[i+NB_SENSORS] * (distances[i]/(float)MAX_SENS) * MAX_SPEED;
 		}
 		
 		// Adapt Braitenberg values (empirical tests)
-		bmsl /= MIN_SENS; bmsr /= MIN_SENS;
-		bmsl += 66; bmsr += 72;
+		//bmsl /= MIN_SENS; bmsr /= MIN_SENS;
+		//bmsl += 66; bmsr += 72;
 		
 		/* Compute self position */
 		
@@ -441,14 +449,20 @@ int main(int argc, char *args[])
 		compute_wheel_speeds(&msl, &msr);
 		
 		// Adapt speed instinct to distance sensor values
-		if (sum_sensors > NB_SENSORS*MIN_SENS) {
+		/*if (sum_sensors > NB_SENSORS*MIN_SENS) {
 			msl -= msl*max_sens/(float)(2*MAX_SENS);
 			msr -= msr*max_sens/(float)(2*MAX_SENS);
+		}*/
+		if (sum_sensors > MIN_SENS) {
+			msl = 0.5*MAX_SPEED;
+			msr = 0.5*MAX_SPEED;
 		}
 		
 		// Add Braitenberg
 		msl += bmsl;
 		msr += bmsr;
+		
+		// Saturate output command
 		limit(&msl, MAX_SPEED);
 		limit(&msr, MAX_SPEED);
 		printf("[%s] msl = %d, msr = %d\n", robot_name, msl, msr);
