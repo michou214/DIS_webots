@@ -136,19 +136,40 @@ void performance(void)
 	perf_orientation = 0;
 	perf_cohesion    = 0;
 	perf_velocity    = 0;
+	
 	for (unsigned int i = 0; i < FLOCK_SIZE; i++) {
 		perf_orientation += 0;
 		perf_cohesion    += 0;
 		perf_velocity    += 0;
 	}
+	
 	perf_orientation = perf_orientation/FLOCK_SIZE;
 	perf_cohesion    = 1/(1+perf_cohesion/FLOCK_SIZE);
 	perf_velocity    = 0;
+	
 	perf_instant = perf_orientation*perf_cohesion*perf_velocity;
 	perf_overall += perf_instant;
+	
 	if (VERBOSE) {
 		printf("[%s] performance = %f\n", super_name, perf_instant);
 	}
+}
+
+/*
+ * Erase log files.
+ */
+void log_clear(void)
+{
+	char filename[256];
+	FILE* file;
+	
+	sprintf(filename, "../../data/performance_instant/%s.txt", super_name);
+	file = fopen(filename, "w");
+	fclose(file);
+	
+	sprintf(filename, "../../data/performance_overall/%s.txt", super_name);
+	file = fopen(filename, "w");
+	fclose(file);
 }
 
 /*
@@ -192,6 +213,9 @@ int main(int argc, char *args[])
 	// Variables initialization
 	time_steps = 0;
 	perf_overall = 0;
+	
+	// Storage reset
+	log_clear();
 	
 	// Simulation loop
 	while (wb_robot_step(TIME_STEP) != -1) {
