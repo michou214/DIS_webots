@@ -25,11 +25,20 @@
 /*** Symbolic constants ***/
 
 #define TIME_STEP  64 // Step duration [ms]
-#define FLOCK_SIZE 5  // Number of robots in flock
+#define FLOCK_SIZE 5  // Number of robots in the flock
 
 #define VERBOSE 1 // If messages should be printed
 
+/*** Symbolic macros ***/
+
+#define MAX(a,b) ((a < b) ? b : a)
+
 /*** Global constants ***/
+
+static const float migration[2] = {25, -25}; // Migration vector for world obstacles
+//static const float migration[2] = {1000, 0}; // Migration vector for world crossing
+
+static const float velocity_max = 0.12874; // Maximum speed of a robot [m/s]
 
 static const char directory_results[]   = "../../results";       // Directory for performance results
 static const char folder_perf_instant[] = "performance_instant"; // Folder name for instant performance results
@@ -44,7 +53,10 @@ static WbDeviceTag emitter;                       // Radio node
 static WbNodeRef  robots            [FLOCK_SIZE]; // Robots nodes
 static WbFieldRef robots_translation[FLOCK_SIZE]; // Robots translation fields
 static WbFieldRef robots_rotation   [FLOCK_SIZE]; // Robots rotation fields
-static float loc[FLOCK_SIZE][3];		          // Robots location in the flock
+static float position[FLOCK_SIZE][3];		      // Robots position in the flock
+
+static float      center_of_mass[2]; // Center of mass of the flock
+static float prev_center_of_mass[2]; // Center of mass of the flock at the previous time step
 
 static float perf_orientation; // Performance metric for orientation
 static float perf_cohesion;    // Performance metric for cohesion
@@ -55,6 +67,14 @@ static float perf_overall;     // Performance overall
 /*** Data types definition ***/
 
 /*** Functions declaration ***/
+
+unsigned long mix(unsigned long a, unsigned long b, unsigned long c);
+void init(void);
+void location(void);
+void performance(void);
+void log_clear(void);
+void log_perf_instant(void);
+void log_perf_overall(void);
 
 /*** Functions implementation ***/
 
@@ -126,9 +146,9 @@ void init(void)
 void location(void)
 {
 	for (unsigned int i = 0; i < FLOCK_SIZE; i++) {
-		loc[i][0] = wb_supervisor_field_get_sf_vec3f(robots_translation[i])[0]; // X
-		loc[i][1] = wb_supervisor_field_get_sf_vec3f(robots_translation[i])[2]; // Z
-		loc[i][2] = wb_supervisor_field_get_sf_rotation(robots_rotation[i])[3]; // Theta
+		position[i][0] = wb_supervisor_field_get_sf_vec3f(robots_translation[i])[0]; // X
+		position[i][1] = wb_supervisor_field_get_sf_vec3f(robots_translation[i])[2]; // Z
+		position[i][2] = wb_supervisor_field_get_sf_rotation(robots_rotation[i])[3]; // Theta
 	}
 }
 
@@ -137,23 +157,63 @@ void location(void)
  */
 void performance(void)
 {
+	unsigned int i, j;    // Loop counters
+	float migratory_urge; // Migration orientation
+	
+	float temp_perf_orientation_vec[2]; // Temporary performance metric for orientation vector
+	float temp_perf_orientation;        // Temporary performance metric for orientation
+	float temp_perf_cohesion;           // Temporary performance metric for cohesion
+	float temp_perf_velocity;           // Temporary performance metric for velocity
+	
+	// Reset performance metrics
+	temp_perf_orientation_vec[0] = 0;
+	temp_perf_orientation_vec[1] = 0;
+	temp_perf_orientation = 0;
+	temp_perf_cohesion    = 0;
+	temp_perf_velocity    = 0;
 	perf_orientation = 0;
 	perf_cohesion    = 0;
 	perf_velocity    = 0;
 	
-	for (unsigned int i = 0; i < FLOCK_SIZE; i++) {
-		perf_orientation += 0;
-		perf_cohesion    += 0;
-		perf_velocity    += 0;
+	// Reset center of mass
+	for (j = 0; j < 2; j++) {
+		prev_center_of_mass[j] = center_of_mass[j];
+		center_of_mass[j] = 0;
+	}
+	for (i = 0; i < FLOCK_SIZE; i++) {
+		for (j = 0; j < 2; j++) {
+			center_of_mass[j] += position[i][j];
+		}
+	}
+	for (j = 0; j < 2; j++) {
+		center_of_mass[j] /= FLOCK_SIZE;
 	}
 	
-	perf_orientation = perf_orientation/FLOCK_SIZE;
-	perf_cohesion    = 1/(1+perf_cohesion/FLOCK_SIZE);
-	perf_velocity    = 0;
+	// Compute migration orientation
+	migratory_urge = -atan2f(migration[1], migration[0]);
+	// Keep migration orientation within [0, 2pi]
+	if (migratory_urge > 2*M_PI)
+		migratory_urge -= 2*M_PI;
+	if (migratory_urge < 0)
+		migratory_urge += 2*M_PI;
 	
+	// Compute performance metrics
+	for (i = 0; i < FLOCK_SIZE; i++) {
+		temp_perf_orientation_vec[0] += cosf(position[i][2]);
+		temp_perf_orientation_vec[1] += sinf(position[i][2]);
+		temp_perf_cohesion           += sqrtf(powf(position[i][0]-center_of_mass[0],2) + powf(position[i][1]-center_of_mass[1],2));
+	}
+	temp_perf_orientation = sqrtf(powf(temp_perf_orientation_vec[0],2) + powf(temp_perf_orientation_vec[1],2));
+	temp_perf_velocity    = MAX((center_of_mass[0]-prev_center_of_mass[0])*cosf(migratory_urge) + (center_of_mass[1]-prev_center_of_mass[1])*sinf(migratory_urge), 0);
+	
+	// Normalize performance metrics
+	perf_orientation = temp_perf_orientation/FLOCK_SIZE;
+	perf_cohesion    = 1/(1+temp_perf_cohesion/FLOCK_SIZE);
+	perf_velocity    = temp_perf_velocity/velocity_max;
+	
+	// Update general performance
 	perf_instant = perf_orientation*perf_cohesion*perf_velocity;
 	perf_overall += perf_instant;
-	
 	if (VERBOSE) {
 		printf("[%s] performance = %f\n", super_name, perf_instant);
 	}

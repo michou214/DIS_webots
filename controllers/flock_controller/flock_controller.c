@@ -75,6 +75,9 @@ typedef struct Vector3D Vec3D;
 //static const int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // Weights for obstacle avoidance
 static const float e_puck_matrix[16] = {-1.0,-1.0,0.5,0.0,0.0,-0.5,0.0,0.0,-1.3,-1.3,-0.5,0.0,0.0,0.05,-0.75,-0.75}; // Weights for obstacle avoidance
 
+static const float migration[2] = {25, -25}; // Migration vector for world obstacles
+//static const float migration[2] = {1000, 0}; // Migration vector for world crossing
+
 /*** Global variables ***/
 
 static char* robot_name;      // Robot's unique identification name
@@ -85,14 +88,11 @@ static WbDeviceTag emitter, receiver;           // Radio sensors
 static WbDeviceTag sensors[NB_SENSORS];         // Distance sensors
 
 static float      my_position[3];              // X, Z, Theta of the current robot
-static float prev_my_position[3];              // X, Z, Theta of the current robot in the previous time step
+static float prev_my_position[3];              // X, Z, Theta of the current robot at the previous time step
 static float      relative_pos[FLOCK_SIZE][3]; // Relative X, Z, Theta of all robots
-static float prev_relative_pos[FLOCK_SIZE][3]; // Relative X, Z, Theta of all robots in the previous time step
+static float prev_relative_pos[FLOCK_SIZE][3]; // Relative X, Z, Theta of all robots at the previous time step
 static float          speed[FLOCK_SIZE][2];    // Speed of all robots
 static float relative_speed[FLOCK_SIZE][2];    // Speed of all robots relative to the current robot
-
-static float migr[2] = {25, -25}; // Migration vector for world obstacles
-//static float migr[2] = {1000, 0}; // Migration vector for world crossing
 
 /*** Functions declaration ***/
 
@@ -371,8 +371,8 @@ void reynolds_rules(void)
 		speed[robot_id][0] += 0.01*cos(my_position[2] + M_PI/2);
 		speed[robot_id][1] += 0.01*sin(my_position[2] + M_PI/2);
 	} else {
-		speed[robot_id][0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT;
-		speed[robot_id][1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT; // y-axis of Webots is inverted
+		speed[robot_id][0] += (migration[0]-my_position[0]) * MIGRATION_WEIGHT;
+		speed[robot_id][1] -= (migration[1]-my_position[1]) * MIGRATION_WEIGHT; // y-axis of Webots is inverted
 	}
 }
 
