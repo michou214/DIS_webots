@@ -315,15 +315,15 @@ void reynolds_rules(void)
 	
 	/* Compute averages over the flockmates in the local neighborhood */
 	for (i = 0; i < FLOCK_SIZE; i++) {
-		if (i == robot_id)
-			continue; // Don't consider yourself for the average
-		// If robot i is in the local neighborhood (Euclidean distance)
-		if (sqrt(pow(relative_pos[i][0],2)+pow(relative_pos[i][1],2)) < NEIGHBORHOOD_THRESHOLD) {
-			for (j = 0; j < 2; j++) {
-				rel_avg_loc[j]   += relative_pos[i][j];
-				rel_avg_speed[j] += relative_speed[i][j];
+		if (i != robot_id) { // Loop on flockmates only
+			// If robot i is in the local neighborhood (Euclidean distance)
+			if (sqrt(pow(relative_pos[i][0],2)+pow(relative_pos[i][1],2)) < NEIGHBORHOOD_THRESHOLD) {
+				for (j = 0; j < 2; j++) {
+					rel_avg_loc[j]   += relative_pos[i][j];
+					rel_avg_speed[j] += relative_speed[i][j];
+				}
+				n_robots++;
 			}
-			n_robots++;
 		}
 	}
 	for (j = 0; j < 2; j++) {
@@ -348,7 +348,7 @@ void reynolds_rules(void)
 	for (i = 0; i < FLOCK_SIZE; i++) {
 		if (i != robot_id) { // Loop on flockmates only
 			// If neighbor i is too close (Euclidean distance)
-			if (pow(relative_pos[i][0],2)+pow(relative_pos[i][1],2) < RULE2_THRESHOLD) {
+			if (sqrt(pow(relative_pos[i][0],2)+pow(relative_pos[i][1],2)) < RULE2_THRESHOLD) {
 				for (j = 0; j < 2; j++) {
 					dispersion[j] -= 1/relative_pos[i][j]; // Relative distance to neighbor i
 				}
@@ -391,7 +391,7 @@ int main(int argc, char *args[])
 	int bmsl, bmsr;            // Braitenberg parameters
 	int distances[NB_SENSORS]; // Array for the distance sensor readings
 	int sum_sensors;           // Sum of all distance sensor readings
-	int max_sens;              // Store highest sensor value
+	//int max_sens;              // Store highest sensor value
 	
 	// Initialization
 	wb_robot_init();
@@ -405,14 +405,14 @@ int main(int argc, char *args[])
 	while (wb_robot_step(TIME_STEP) != -1) {
 		bmsl = 0; bmsr = 0;
 		sum_sensors = 0;
-		max_sens = 0;
+		//max_sens = 0;
 		
 		/* Braitenberg obstacle avoidance */
 		
 		for (i = 0; i < NB_SENSORS; i++) {
 			distances[i] = wb_distance_sensor_get_value(sensors[i]); // Read sensor values
 			sum_sensors += distances[i]; // Add up sensor values
-			max_sens = distances[i] > max_sens ? distances[i] : max_sens; // Check if new highest sensor value
+			//max_sens = distances[i] > max_sens ? distances[i] : max_sens; // Check if new highest sensor value
 			
 			// Weighted sum of distance sensor values for Braitenberg vehicle
 			//bmsr += e_puck_matrix[i]            * distances[i];
