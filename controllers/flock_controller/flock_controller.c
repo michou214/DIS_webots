@@ -10,6 +10,7 @@
 #include <webots/robot.h>
 #include <webots/emitter.h>
 #include <webots/receiver.h>
+#include <webots/compass.h>
 #include <webots/motor.h>
 #include <webots/position_sensor.h>
 #include <webots/distance_sensor.h>
@@ -75,7 +76,7 @@ typedef struct Vector3D Vec3D;
 //static const int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // Weights for obstacle avoidance
 static const float e_puck_matrix[16] = {-1.0,-1.0,0.5,0.0,0.0,-0.5,0.0,0.0,-1.3,-1.3,-0.5,0.0,0.0,0.05,-0.75,-0.75}; // Weights for obstacle avoidance
 
-static const float migration[2] = {25, -25}; // Migration vector for world obstacles
+static const float migration[2] = {25, 25}; // Migration vector for world obstacles
 //static const float migration[2] = {1000, 0}; // Migration vector for world crossing
 
 /*** Global variables ***/
@@ -86,6 +87,7 @@ static unsigned int robot_id; // Robot's unique identification number
 static WbDeviceTag left_motor, right_motor; // Rotational motors
 static WbDeviceTag emitter, receiver;       // Radio sensors
 static WbDeviceTag sensors[NB_SENSORS];     // Distance sensors
+static WbDeviceTag compass;                 // Orientation sensor
 
 static float      my_position[3];              // X, Z, Theta of the current robot
 static float prev_my_position[3];              // X, Z, Theta of the current robot at the previous time step
@@ -145,6 +147,10 @@ void init(void)
 	receiver = wb_robot_get_device("receiver");
 	wb_receiver_enable(receiver, TIME_STEP);
 	
+    // Compass
+    compass = wb_robot_get_device("compass");
+    wb_compass_enable(compass, TIME_STEP);
+	
 	// Wheel motors and encoders
     left_motor = wb_robot_get_device("left wheel motor");
 	right_motor = wb_robot_get_device("right wheel motor");
@@ -178,7 +184,7 @@ void limit(int *number, const int limit)
  */
 void compute_wheel_speeds(int *msl, int *msr)
 {
-	// Compute wanted position from Reynold's speed and current location
+	// Compute wanted position from Reynolds speed and current location
 	float x =  speed[robot_id][0]*cosf(my_position[2]) + speed[robot_id][1]*sinf(my_position[2]); // x in robot coordinates
 	float z = -speed[robot_id][0]*sinf(my_position[2]) + speed[robot_id][1]*cosf(my_position[2]); // z in robot coordinates
 	//printf("[%s] x = %f, y = %f\n", robot_name, x, z);
@@ -187,7 +193,7 @@ void compute_wheel_speeds(int *msl, int *msr)
 	float Ku = 0.2; // Forward control coefficient
 	float Kw = 1.0; // Rotational control coefficient
 	float range = sqrtf(x*x + z*z); // Distance to the wanted position
-	float bearing = -atan2(x, z); // Orientation of the wanted position
+	float bearing = atan2(z, x); // Orientation of the wanted position
 	
 	// Compute forward control
 	float u = Ku*range*cosf(bearing);
@@ -215,6 +221,7 @@ void update_self_motion(const int msl, const int msr)
 	const float dl = (float)msl * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
 	const float du = (dr + dl)/2.0;
 	const float dtheta = (dr - dl)/AXLE_LENGTH;
+	//printf("[%s] dtheta = %f°\n", robot_name, dtheta*180/M_PI);
 	
 	// Compute deltas in the environment
 	const float dx = -du * sinf(theta);
@@ -223,13 +230,19 @@ void update_self_motion(const int msl, const int msr)
 	// Update position
 	my_position[0] += dx;
 	my_position[1] += dz;
-	my_position[2] += dtheta;
+	if (!compass) {
+		my_position[2] += dtheta;
+	} else {
+		const double *compass_heading = wb_compass_get_values(compass);
+		my_position[2] = -atan2(compass_heading[0], compass_heading[2]) + M_PI;
+	}
 	
 	// Keep orientation within [0, 2pi]
 	if (my_position[2] > 2*M_PI)
 		my_position[2] -= 2*M_PI;
 	if (my_position[2] < 0)
 		my_position[2] += 2*M_PI;
+	//printf("[%s] orientation = %f°\n", robot_name, my_position[2]*180/M_PI);
 }
 
 /*
@@ -301,7 +314,7 @@ void process_received_ping_messages(void)
 }
 
 /*
- * Update speed according to Reynold's rules.
+ * Update speed according to Reynolds' rules.
  */
 void reynolds_rules(void)
 {
@@ -319,7 +332,7 @@ void reynolds_rules(void)
 			// If robot i is in the local neighborhood (Euclidean distance)
 			if (sqrt(pow(relative_pos[i][0],2)+pow(relative_pos[i][1],2)) < NEIGHBORHOOD_THRESHOLD) {
 				for (j = 0; j < 2; j++) {
-					rel_avg_loc[j]   += relative_pos[i][j];
+					rel_avg_loc  [j] += relative_pos  [i][j];
 					rel_avg_speed[j] += relative_speed[i][j];
 				}
 				n_robots++;
@@ -328,11 +341,11 @@ void reynolds_rules(void)
 	}
 	for (j = 0; j < 2; j++) {
 		if (n_robots > 1) {
-			rel_avg_loc[j]   /= n_robots-1;
+			rel_avg_loc  [j] /= n_robots-1;
 			rel_avg_speed[j] /= n_robots-1;
 		} else {
-			rel_avg_loc[j]   = my_position[j];
-			rel_avg_speed[j] = speed[robot_id][j];
+			rel_avg_loc  [j] = 0;
+			rel_avg_speed[j] = 0;
 		}
 	}
 	
@@ -445,10 +458,10 @@ int main(int argc, char *args[])
 		
 		/* Compute self speed */
 		
-		// Reynold's rules with all previous info (updates the speed[][] table)
+		// Reynolds' rules with all previous info (updates the speed[][] table)
 		reynolds_rules();
 		
-		// Compute wheels speed from Reynold's speed
+		// Compute wheels speed from Reynolds speed
 		compute_wheel_speeds(&msl, &msr);
 		
 		// Adapt speed instinct to distance sensor values
