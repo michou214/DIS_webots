@@ -230,12 +230,12 @@ void update_self_motion(const int msl, const int msr)
 	// Update position
 	my_position[0] += dx;
 	my_position[1] += dz;
-	if (!compass) {
+	/*if (!compass) {*/
 		my_position[2] += dtheta;
-	} else {
+	/*} else {
 		const double *compass_heading = wb_compass_get_values(compass);
 		my_position[2] = -atan2(compass_heading[0], compass_heading[2]) + M_PI;
-	}
+	}*/
 	
 	// Keep orientation within [0, 2pi]
 	if (my_position[2] > 2*M_PI)
