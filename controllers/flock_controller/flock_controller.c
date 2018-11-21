@@ -76,7 +76,7 @@ typedef struct Vector3D Vec3D;
 //static const int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // Weights for obstacle avoidance
 static const float e_puck_matrix[16] = {-1.0,-1.0,0.5,0.0,0.0,-0.5,0.0,0.0,-1.3,-1.3,-0.5,0.0,0.0,0.05,-0.75,-0.75}; // Weights for obstacle avoidance
 
-static const float migration[2] = {25, 25}; // Migration vector for world obstacles
+static const float migration[2] = {25, -25}; // Migration vector for world obstacles
 //static const float migration[2] = {1000, 0}; // Migration vector for world crossing
 
 /*** Global variables ***/
@@ -149,7 +149,9 @@ void init(void)
 	
     // Compass
     compass = wb_robot_get_device("compass");
-    wb_compass_enable(compass, TIME_STEP);
+	if (compass) {
+		wb_compass_enable(compass, TIME_STEP);
+	}
 	
 	// Wheel motors and encoders
     left_motor = wb_robot_get_device("left wheel motor");
@@ -221,21 +223,19 @@ void update_self_motion(const int msl, const int msr)
 	const float dl = (float)msl * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
 	const float du = (dr + dl)/2.0;
 	const float dtheta = (dr - dl)/AXLE_LENGTH;
-	//printf("[%s] dtheta = %f°\n", robot_name, dtheta*180/M_PI);
 	
 	// Compute deltas in the environment
-	const float dx = -du * sinf(theta);
-	const float dz = -du * cosf(theta);
+	const float dx = du * cosf(theta);
+	const float dz = du * sinf(theta);
 	
 	// Update position
 	my_position[0] += dx;
 	my_position[1] += dz;
-	/*if (!compass) {*/
-		my_position[2] += dtheta;
-	/*} else {
+	my_position[2] += dtheta;
+	if (compass) {
 		const double *compass_heading = wb_compass_get_values(compass);
 		my_position[2] = -atan2(compass_heading[0], compass_heading[2]) + M_PI;
-	}*/
+	}
 	
 	// Keep orientation within [0, 2pi]
 	if (my_position[2] > 2*M_PI)

@@ -246,6 +246,10 @@ DEF epuck0 E-puck {
   rotation 0 1 0 1.57
   controller "flock_controller"
   name "epuck0"
+  turretSlot [
+    # Compass {
+    # }
+  ]
 }
 DEF epuck1 E-puck {
   hidden position_0_0 1.5357847128286672e-8
@@ -254,6 +258,10 @@ DEF epuck1 E-puck {
   rotation 0 1 0 1.57
   controller "flock_controller"
   name "epuck1"
+  turretSlot [
+    # Compass {
+    # }
+  ]
 }
 DEF epuck2 E-puck {
   hidden position_0_0 1.5357847128286672e-8
@@ -262,6 +270,10 @@ DEF epuck2 E-puck {
   rotation 0 1 0 1.57
   controller "flock_controller"
   name "epuck2"
+  turretSlot [
+    # Compass {
+    # }
+  ]
 }
 DEF epuck3 E-puck {
   hidden position_0_0 1.5357847128286672e-8
@@ -270,6 +282,10 @@ DEF epuck3 E-puck {
   rotation 0 1 0 1.57
   controller "flock_controller"
   name "epuck3"
+  turretSlot [
+    # Compass {
+    # }
+  ]
 }
 DEF epuck4 E-puck {
   hidden position_0_0 1.5357847128286672e-8
@@ -278,6 +294,10 @@ DEF epuck4 E-puck {
   rotation 0 1 0 1.57
   controller "flock_controller"
   name "epuck4"
+  turretSlot [
+    # Compass {
+    # }
+  ]
 }
 DEF epuck5 E-puck {
   hidden position_0_0 1.5357847128286672e-8
@@ -286,6 +306,10 @@ DEF epuck5 E-puck {
   rotation 0 1 0 -1.57
   controller "flock_controller"
   name "epuck5"
+  turretSlot [
+    # Compass {
+    # }
+  ]
 }
 DEF epuck6 E-puck {
   hidden position_0_0 1.5357847128286672e-8
@@ -294,6 +318,10 @@ DEF epuck6 E-puck {
   rotation 0 1 0 -1.57
   controller "flock_controller"
   name "epuck6"
+  turretSlot [
+    # Compass {
+    # }
+  ]
 }
 DEF epuck7 E-puck {
   hidden position_0_0 1.5357847128286672e-8
@@ -302,6 +330,10 @@ DEF epuck7 E-puck {
   rotation 0 1 0 -1.57
   controller "flock_controller"
   name "epuck7"
+  turretSlot [
+    # Compass {
+    # }
+  ]
 }
 DEF epuck8 E-puck {
   hidden position_0_0 1.5357847128286672e-8
@@ -310,6 +342,10 @@ DEF epuck8 E-puck {
   rotation 0 1 0 -1.57
   controller "flock_controller"
   name "epuck8"
+  turretSlot [
+    # Compass {
+    # }
+  ]
 }
 DEF epuck9 E-puck {
   hidden position_0_0 1.5357847128286672e-8
@@ -318,4 +354,8 @@ DEF epuck9 E-puck {
   rotation 0 1 0 -1.57
   controller "flock_controller"
   name "epuck9"
+  turretSlot [
+    # Compass {
+    # }
+  ]
 }

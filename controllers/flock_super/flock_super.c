@@ -180,6 +180,7 @@ void performance(void)
 		prev_center_of_mass[j] = center_of_mass[j];
 		center_of_mass[j] = 0;
 	}
+	// Compute center of mass
 	for (i = 0; i < FLOCK_SIZE; i++) {
 		for (j = 0; j < 2; j++) {
 			center_of_mass[j] += position[i][j];
