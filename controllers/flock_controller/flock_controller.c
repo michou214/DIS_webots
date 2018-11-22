@@ -79,9 +79,8 @@ typedef struct Vector3D Vec3D;
 static const float e_puck_matrix[16] = {-1.0,-1.0,0.5,0.0,0.0,-0.5,0.0,0.0,-1.3,-1.3,-0.5,0.0,0.0,0.05,-0.75,-0.75}; // Weights for obstacle avoidance
 
 #if WORLD_CROSSING
-static const float migration[2][2] = {{-100, 5}, {100, 5}}; // Migration vector for world crossing {team0, team1}
+static const float migration[2][2] = {{-100, 0}, {100, 0}}; // Migration vector for world crossing {team0, team1}
 #else
-//static const float migration[1][2] = {{25, -25}}; // Migration vector for world obstacles {team0}
 static const float migration[1][2] = {{25, 0}}; // Migration vector for world obstacles {team0}
 #endif
 
@@ -478,13 +477,13 @@ int main(int argc, char *args[])
 			msr -= msr*max_sens/(float)(2*MAX_SENS);
 		}*/
 		if (sum_sensors > MIN_SENS) {
-			//msl = 0.5*MAX_SPEED;
-			//msr = 0.5*MAX_SPEED;
+			msl = 0.5*MAX_SPEED;
+			msr = 0.5*MAX_SPEED;
 		}
 		
 		// Add Braitenberg
-		//msl += bmsl;
-		//msr += bmsr;
+		msl += bmsl;
+		msr += bmsr;
 		
 		// Saturate output command
 		limit(&msl, MAX_SPEED);

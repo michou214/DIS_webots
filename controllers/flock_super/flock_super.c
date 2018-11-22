@@ -38,7 +38,7 @@
 /*** Global constants ***/
 
 #if WORLD_CROSSING
-static const float migration[2][2] = {{-100, 5}, {100, 5}}; // Migration vector for world crossing {team0, team1}
+static const float migration[2][2] = {{-100, 0}, {100, 0}}; // Migration vector for world crossing {team0, team1}
 #else
 static const float migration[1][2] = {{25, 0}}; // Migration vector for world obstacles {team0}
 #endif
