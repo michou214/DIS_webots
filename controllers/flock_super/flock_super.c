@@ -24,6 +24,8 @@
 
 /*** Symbolic constants ***/
 
+#define WORLD_CROSSING 1
+
 #define TIME_STEP  64 // Step duration [ms]
 #define FLOCK_SIZE 5  // Number of robots in the flock
 
@@ -35,8 +37,11 @@
 
 /*** Global constants ***/
 
-static const float migration[2] = {25, -25}; // Migration vector for world obstacles
-//static const float migration[2] = {1000, 0}; // Migration vector for world crossing
+#if WORLD_CROSSING
+static const float migration[2][2] = {{-100, 5}, {100, 5}}; // Migration vector for world crossing {team0, team1}
+#else
+static const float migration[1][2] = {{25, 0}}; // Migration vector for world obstacles {team0}
+#endif
 
 static const float velocity_max = 0.12874; // Maximum speed of a robot [m/s]
 
@@ -46,8 +51,9 @@ static const char folder_perf_overall[] = "performance_overall"; // Folder name 
 
 /*** Global variables ***/
 
-static char* super_name;    // Supervisor's unique identification name
-static unsigned int offset; // Offset to the supervisor's flock
+static char*        super_name; // Supervisor's unique identification name
+static unsigned int super_team; // Supervisor's unique identification team
+static unsigned int offset;     // Offset to the supervisor's flock
 
 static WbDeviceTag emitter;                       // Radio node
 static WbNodeRef  robots            [FLOCK_SIZE]; // Robots nodes
@@ -122,8 +128,10 @@ void init(void)
 	}
 	if (nb_robots > FLOCK_SIZE) {
 		sscanf(super_name, "super%d", &offset);
+		super_team = offset;
 		offset *= FLOCK_SIZE;
 	} else {
+		super_team = 0;
 		offset = 0;
 	}
 	
@@ -191,7 +199,7 @@ void performance(void)
 	}
 	
 	// Compute migration orientation
-	migratory_urge = -atan2f(migration[1], migration[0]);
+	migratory_urge = atan2f(migration[super_team][1]-prev_center_of_mass[1], migration[super_team][0]-prev_center_of_mass[0]);
 	// Keep migration orientation within [0, 2pi]
 	if (migratory_urge > 2*M_PI)
 		migratory_urge -= 2*M_PI;

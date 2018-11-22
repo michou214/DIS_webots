@@ -247,8 +247,8 @@ DEF epuck0 E-puck {
   controller "flock_controller"
   name "epuck0"
   turretSlot [
-    # Compass {
-    # }
+    Compass {
+    }
   ]
 }
 DEF epuck1 E-puck {
@@ -259,8 +259,8 @@ DEF epuck1 E-puck {
   controller "flock_controller"
   name "epuck1"
   turretSlot [
-    # Compass {
-    # }
+    Compass {
+    }
   ]
 }
 DEF epuck2 E-puck {
@@ -271,8 +271,8 @@ DEF epuck2 E-puck {
   controller "flock_controller"
   name "epuck2"
   turretSlot [
-    # Compass {
-    # }
+    Compass {
+    }
   ]
 }
 DEF epuck3 E-puck {
@@ -283,8 +283,8 @@ DEF epuck3 E-puck {
   controller "flock_controller"
   name "epuck3"
   turretSlot [
-    # Compass {
-    # }
+    Compass {
+    }
   ]
 }
 DEF epuck4 E-puck {
@@ -295,8 +295,8 @@ DEF epuck4 E-puck {
   controller "flock_controller"
   name "epuck4"
   turretSlot [
-    # Compass {
-    # }
+    Compass {
+    }
   ]
 }
 DEF epuck5 E-puck {
@@ -307,8 +307,8 @@ DEF epuck5 E-puck {
   controller "flock_controller"
   name "epuck5"
   turretSlot [
-    # Compass {
-    # }
+    Compass {
+    }
   ]
 }
 DEF epuck6 E-puck {
@@ -319,8 +319,8 @@ DEF epuck6 E-puck {
   controller "flock_controller"
   name "epuck6"
   turretSlot [
-    # Compass {
-    # }
+    Compass {
+    }
   ]
 }
 DEF epuck7 E-puck {
@@ -331,8 +331,8 @@ DEF epuck7 E-puck {
   controller "flock_controller"
   name "epuck7"
   turretSlot [
-    # Compass {
-    # }
+    Compass {
+    }
   ]
 }
 DEF epuck8 E-puck {
@@ -343,8 +343,8 @@ DEF epuck8 E-puck {
   controller "flock_controller"
   name "epuck8"
   turretSlot [
-    # Compass {
-    # }
+    Compass {
+    }
   ]
 }
 DEF epuck9 E-puck {
@@ -355,7 +355,7 @@ DEF epuck9 E-puck {
   controller "flock_controller"
   name "epuck9"
   turretSlot [
-    # Compass {
-    # }
+    Compass {
+    }
   ]
 }
