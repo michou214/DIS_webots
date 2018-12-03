@@ -27,7 +27,7 @@
 
 /*** Symbolic constants ***/
 
-#define WORLD_CROSSING 1
+#define WORLD_CROSSING 0
 
 #define TIME_STEP  64 // Step duration [ms]
 #define FLOCK_SIZE 5  // Number of robots in flock
@@ -43,13 +43,13 @@
 #define WHEEL_RADIUS    0.0205  // Wheel radius [m]
 #define DELTA_T         0.064   // Timestep [s]
 
-#define NEIGHBORHOOD_THRESHOLD 5.40      // Maximum neighborhood radius [m]
-#define RULE1_THRESHOLD        0.20      // Threshold to activate aggregation rule (default 0.20)
-#define RULE2_THRESHOLD        0.15      // Threshold to activate dispersion rule (default 0.15)
-#define RULE1_WEIGHT           (0.6/10)  // Weight of aggregation rule (default 0.6/10)
+#define NEIGHBORHOOD_THRESHOLD 0.25      // Maximum neighborhood radius [m]
+#define RULE1_THRESHOLD        0.0      // Threshold to activate aggregation rule (default 0.20)
+#define RULE2_THRESHOLD        0.05      // Threshold to activate dispersion rule (default 0.15)
+#define RULE1_WEIGHT           (3.0/10)  // Weight of aggregation rule (default 0.6/10)
 #define RULE2_WEIGHT           (0.02/10) // Weight of dispersion rule (default 0.02/10)
 #define RULE3_WEIGHT           (1.0/10)  // Weight of consistency rule (default 1.0/10)
-#define MIGRATION_WEIGHT       (0.01/10) // Weight of attraction towards the common goal (default 0.01/10)
+#define MIGRATION_WEIGHT       (0.04/10) // Weight of attraction towards the common goal (default 0.02/10)
 #define MIGRATORY_URGE         1         // If the robots should just go forward or move towards a specific migratory direction
 
 /*** Symbolic macros ***/
@@ -76,8 +76,8 @@ typedef struct Vector3D Vec3D;
 /*** Global constants ***/
 
 //static const int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // Weights for obstacle avoidance
-static const float e_puck_matrix[16] = {-1.0,-1.0,0.5,0.0,0.0,-0.5,0.0,0.0,-1.3,-1.3,-0.5,0.0,0.0,0.05,-0.75,-0.75}; // Weights for obstacle avoidance
-
+static const float e_puck_matrix[16] = {2.0,2.0,1.0,0.0,0.0,-1.0,-2.5,-2.5,-2.0,-2.0,-1.0,0.0,0.0,1.0,1.5,1.5}; // Weights for obstacle avoidance
+                                  //  R: 0   1   2   3   4    5    6    7|L: 0    1    2   3   4   5   6   7
 #if WORLD_CROSSING
 static const float migration[2][2] = {{-100, 0}, {100, 0}}; // Migration vector for world crossing {team0, team1}
 #else
@@ -388,14 +388,20 @@ void reynolds_rules(void)
 		speed[robot_id][j] += consistency[j] * RULE3_WEIGHT;
 	}
 	speed[robot_id][1] *= -1; // y-axis of Webots is inverted
+	printf("[%d] Cohesion: %f/%f, Dispersion = %f/%f, Consistency = %f/%f \n", robot_id, cohesion[0] * RULE1_WEIGHT,cohesion[1] * RULE1_WEIGHT, dispersion [0] * RULE2_WEIGHT,dispersion [1] * RULE2_WEIGHT, consistency[0] * RULE3_WEIGHT,consistency[1] * RULE3_WEIGHT);
 	
 	/* Move the robot according to some migration rule */
 	if (MIGRATORY_URGE == 0) {
 		speed[robot_id][0] += 0.01*cos(my_position[2] + M_PI/2);
 		speed[robot_id][1] += 0.01*sin(my_position[2] + M_PI/2);
-	} else {
+	} else {            	
 		speed[robot_id][0] += (migration[robot_team][0]-my_position[0]) * MIGRATION_WEIGHT;
 		speed[robot_id][1] -= (migration[robot_team][1]-my_position[1]) * MIGRATION_WEIGHT; // y-axis of Webots is inverted
+            	//printf("[%d] mypos0 = %f, mypos1 = %f \n", robot_id, rel_avg_loc[0], rel_avg_loc[1]);
+            	if (rel_avg_loc[1]>=0) { // Robot is a leader towards migration, increase urge
+              		speed[robot_id][0] += (migration[robot_team][0]-my_position[0]) * 0.5 * MIGRATION_WEIGHT;
+              		speed[robot_id][1] -= (migration[robot_team][1]-my_position[1]) * 0.5 * MIGRATION_WEIGHT;
+            	}
 	}
 }
 
@@ -437,8 +443,8 @@ int main(int argc, char *args[])
 			// Weighted sum of distance sensor values for Braitenberg vehicle
 			//bmsr += e_puck_matrix[i]            * distances[i];
 			//bmsl += e_puck_matrix[i+NB_SENSORS] * distances[i];
-			bmsr += e_puck_matrix[i]            * (distances[i]/(float)MAX_SENS) * MAX_SPEED;
-			bmsl += e_puck_matrix[i+NB_SENSORS] * (distances[i]/(float)MAX_SENS) * MAX_SPEED;
+			bmsr += 5*e_puck_matrix[i]            * (distances[i]/(float)MAX_SENS) * MAX_SPEED;
+			bmsl += 5*e_puck_matrix[i+NB_SENSORS] * (distances[i]/(float)MAX_SENS) * MAX_SPEED;
 		}
 		
 		// Adapt Braitenberg values (empirical tests)

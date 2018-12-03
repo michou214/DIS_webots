@@ -24,12 +24,14 @@
 
 /*** Symbolic constants ***/
 
-#define WORLD_CROSSING 1
+#define WORLD_CROSSING 0
 
 #define TIME_STEP  64 // Step duration [ms]
 #define FLOCK_SIZE 5  // Number of robots in the flock
 
 #define VERBOSE 1 // If messages should be printed
+
+#define DELTA_T         0.064   // Timestep [s]
 
 /*** Symbolic macros ***/
 
@@ -213,12 +215,16 @@ void performance(void)
 		temp_perf_cohesion           += sqrtf(powf(position[i][0]-center_of_mass[0],2) + powf(position[i][1]-center_of_mass[1],2));
 	}
 	temp_perf_orientation = sqrtf(powf(temp_perf_orientation_vec[0],2) + powf(temp_perf_orientation_vec[1],2));
-	temp_perf_velocity    = MAX((center_of_mass[0]-prev_center_of_mass[0])*cosf(migratory_urge) + (center_of_mass[1]-prev_center_of_mass[1])*sinf(migratory_urge), 0);
+	temp_perf_velocity    = MAX((center_of_mass[0]-prev_center_of_mass[0])/DELTA_T*cosf(migratory_urge) + (center_of_mass[1]-prev_center_of_mass[1])/DELTA_T*sinf(migratory_urge), 0);
 	
 	// Normalize performance metrics
 	perf_orientation = temp_perf_orientation/FLOCK_SIZE;
 	perf_cohesion    = 1/(1+temp_perf_cohesion/FLOCK_SIZE);
 	perf_velocity    = temp_perf_velocity/velocity_max;
+	
+	if (VERBOSE) {
+		printf("[%s] Orientation = %f || Cohesion = %f || Velocity = %f \n", super_name, perf_orientation, perf_cohesion, perf_velocity);
+	}
 	
 	// Update general performance
 	perf_instant = perf_orientation*perf_cohesion*perf_velocity;
