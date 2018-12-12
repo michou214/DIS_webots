@@ -31,7 +31,7 @@
 
 #define VERBOSE 1 // If messages should be printed
 
-#define DELTA_T         0.064   // Timestep [s]
+#define DELTA_T 0.064   // Timestep [s]
 
 /*** Symbolic macros ***/
 
@@ -72,11 +72,9 @@ static float perf_velocity;    // Performance metric for velocity
 static float perf_instant;     // Performance instant
 static float perf_overall;     // Performance overall
 
-/*** Data types definition ***/
 
 /*** Functions declaration ***/
 
-unsigned long mix(unsigned long a, unsigned long b, unsigned long c);
 void init(void);
 void location(void);
 void performance(void);
@@ -86,34 +84,12 @@ void log_perf_overall(void);
 
 /*** Functions implementation ***/
 
-/*
- * Robert Jenkins' 96 bit Mix Function
- * http://web.archive.org/web/20070111091013/http://www.concentric.net/~Ttwang/tech/inthash.htm
- * http://web.archive.org/web/20070110173527/http://burtleburtle.net:80/bob/hash/doobs.html
- */
-unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
-{
-    a=a-b;  a=a-c;  a=a^(c >> 13);
-    b=b-c;  b=b-a;  b=b^(a << 8);
-    c=c-a;  c=c-b;  c=c^(b >> 13);
-    a=a-b;  a=a-c;  a=a^(c >> 12);
-    b=b-c;  b=b-a;  b=b^(a << 16);
-    c=c-a;  c=c-b;  c=c^(b >> 5);
-    a=a-b;  a=a-c;  a=a^(c >> 3);
-    b=b-c;  b=b-a;  b=b^(a << 10);
-    c=c-a;  c=c-b;  c=c^(b >> 15);
-    return c;
-}
 
 /*
  * Initialize the controller.
  */
 void init(void)
 {
-	// Seed the random number generator
-	const unsigned long seed = mix(clock(), time(NULL), getpid());
-	srand(seed);
-	
 	// Unique identifier of the supervisor
 	super_name = (char*) wb_robot_get_name();
 	
@@ -230,7 +206,7 @@ void performance(void)
 	perf_instant = perf_orientation*perf_cohesion*perf_velocity;
 	perf_overall += perf_instant;
 	if (VERBOSE) {
-		printf("[%s] performance = %f\n", super_name, perf_instant);
+		//printf("[%s] performance = %f\n", super_name, perf_instant);
 	}
 }
 
