@@ -234,12 +234,18 @@ void send_ping(void)
  */
 void process_received_ping_messages(void)
 {
+	unsigned int i; // Loop counter
 	char *inbuffer;	// Buffer for the receiver node
 	const double *message_direction; // Direction of the emitter with respect to the receiver's coordinate system
 	double message_rssi; // Received Signal Strength Indicator
 	double theta;
 	double range;
 	unsigned int other_robot_team, other_robot_id;
+	
+	// Reset the neighborhood
+	for (i = 0; i < FLOCK_SIZE; i++) {
+		in_neighborhood[i] = 0;
+	}
 	
 	while (wb_receiver_get_queue_length(receiver) > 0) {
 		// Retrieve information from message
@@ -261,29 +267,27 @@ void process_received_ping_messages(void)
 		
 		// If robots are in the same neighborhood
 		if (range < NEIGHBORHOOD_THRESHOLD) {
-          		in_neighborhood[other_robot_id] = 1;
-          		
-            		// If robots are in the same team
-            		if (robot_team == other_robot_team) {
-            			/* Position update */
-            			
-            			prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
-            			prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
-            			
-            			relative_pos[other_robot_id][0] =  range*cos(theta); // Relative x-coordinate
-            			//printf("[%d], [%d], rel_pos_X=%f \n", robot_id, other_robot_id, relative_pos[other_robot_id][0]);
-            			relative_pos[other_robot_id][1] = -range*sin(theta); // Relative z-coordinate
-            			//printf("[%d], [%d], rel_pos_Z=%f \n", robot_id, other_robot_id, relative_pos[other_robot_id][1]);
-            			
-            			//printf("[%s] from %s, x = %f, y = %f, theta = %f, my_theta = %f\n", robot_name, inbuffer, relative_pos[other_robot_id][0], relative_pos[other_robot_id][1], -atan2(y,x)*180.0/3.141592, my_position[2]*180.0/3.141592);
-            			
-            			/* Speed update */
-            			
-            			relative_speed[other_robot_id][0] = 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0]);
-            			relative_speed[other_robot_id][1] = 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1]);
-            		}
-  		} else {
-          		in_neighborhood[other_robot_id] = 0;
+			in_neighborhood[other_robot_id] = 1;
+		
+			// If robots are in the same team
+			if (robot_team == other_robot_team) {
+				/* Position update */
+				
+				prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
+				prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
+				
+				relative_pos[other_robot_id][0] =  range*cos(theta); // Relative x-coordinate
+				//printf("[%d], [%d], rel_pos_X=%f \n", robot_id, other_robot_id, relative_pos[other_robot_id][0]);
+				relative_pos[other_robot_id][1] = -range*sin(theta); // Relative z-coordinate
+				//printf("[%d], [%d], rel_pos_Z=%f \n", robot_id, other_robot_id, relative_pos[other_robot_id][1]);
+				
+				//printf("[%s] from %s, x = %f, y = %f, theta = %f, my_theta = %f\n", robot_name, inbuffer, relative_pos[other_robot_id][0], relative_pos[other_robot_id][1], -atan2(y,x)*180.0/3.141592, my_position[2]*180.0/3.141592);
+				
+				/* Speed update */
+				
+				relative_speed[other_robot_id][0] = (relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0])/DELTA_T;
+				relative_speed[other_robot_id][1] = (relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1])/DELTA_T;
+			}
   		}
 		
 		wb_receiver_next_packet(receiver);
@@ -306,7 +310,7 @@ void reynolds_rules(void)
 	/* Compute averages over the flockmates in the local neighborhood */
 	for (i = 0; i < FLOCK_SIZE; i++) {
 		if (i != robot_id) { // Loop on flockmates only
-			// If robot i is in the local neighborhood (Euclidean distance)
+			// If robot i is in the local neighborhood
 			if (in_neighborhood[i]) {
 				for (j = 0; j < 2; j++) {
 					rel_avg_loc  [j] += relative_pos  [i][j];
@@ -342,9 +346,9 @@ void reynolds_rules(void)
 			// If neighbor i is too close (Euclidean distance)
 			if (sqrt(pow(relative_pos[i][0],2)+pow(relative_pos[i][1],2)) < RULE2_THRESHOLD) {
 				for (j = 0; j < 2; j++) {
-          				if (relative_pos[i][j] != 0) {
-          					dispersion[j] -= 1/relative_pos[i][j]; // Relative distance to neighbor i
-          				}
+					if (relative_pos[i][j] != 0) {
+						dispersion[j] -= 1/relative_pos[i][j]; // Relative distance to neighbor i
+					}
 				}
 			}
 		}
@@ -419,8 +423,8 @@ int main(int argc, char *args[])
 		
 		update_self_motion(msl, msr);
 		
-		speed[robot_id][0] = (1/DELTA_T)*(my_position[0]-prev_my_position[0]);
-		speed[robot_id][1] = (1/DELTA_T)*(my_position[1]-prev_my_position[1]);
+		speed[robot_id][0] = (my_position[0]-prev_my_position[0])/DELTA_T;
+		speed[robot_id][1] = (my_position[1]-prev_my_position[1])/DELTA_T;
 		
 		/* Send and get information */
 		
