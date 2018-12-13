@@ -4,7 +4,7 @@
  * Date:        Fall 2018
  * Description: Supervisor for DIS project.
  *************************************************************************************************/
-
+//v.pre-final
 /*** Specific libraries ***/
 
 #include <webots/supervisor.h>
@@ -206,7 +206,7 @@ void performance(void)
 	perf_instant = perf_orientation*perf_cohesion*perf_velocity;
 	perf_overall += perf_instant;
 	if (VERBOSE) {
-		//printf("[%s] performance = %f\n", super_name, perf_instant);
+		printf("[%s] performance = %f\n", super_name, perf_instant);
 	}
 }
 

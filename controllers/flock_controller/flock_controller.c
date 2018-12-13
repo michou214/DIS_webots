@@ -4,7 +4,7 @@
  * Date:        Fall 2018
  * Description: Controller for DIS project.
  *************************************************************************************************/
-
+//v.pre-final
 /*** Specific libraries ***/
 
 #include <webots/robot.h>
@@ -44,18 +44,17 @@
 #define DELTA_T         0.064   // Timestep [s]
 
 #define NEIGHBORHOOD_THRESHOLD 0.20      // Maximum neighborhood radius [m]
-#define RULE1_THRESHOLD        0.20      // Threshold to activate aggregation rule (default 0.20)
+#define RULE1_THRESHOLD        0.0      // Threshold to activate aggregation rule (default 0.20)
 #define RULE2_THRESHOLD        0.05      // Threshold to activate dispersion rule (default 0.15)
-#define RULE1_WEIGHT           (0.6/10)  // Weight of aggregation rule (default 0.6/10)
+#define RULE1_WEIGHT           (1.0/10)  // Weight of aggregation rule (default 0.6/10)
 #define RULE2_WEIGHT           (0.02/10) // Weight of dispersion rule (default 0.02/10)
 #define RULE3_WEIGHT           (1.0/10)  // Weight of consistency rule (default 1.0/10)
-#define MIGRATION_WEIGHT       (0.2/10) // Weight of attraction towards the common goal (default 0.02/10)
+#define MIGRATION_WEIGHT       (0.01/10) // Weight of attraction towards the common goal (default 0.02/10)
 #define MIGRATORY_URGE         1         // If the robots should just go forward or move towards a specific migratory direction
 
 /*** Symbolic macros ***/
 
 #define ABS(x) ((x >= 0) ? (x) : -(x))
-
 
 /*** Global constants ***/
 
@@ -65,7 +64,7 @@ static const float e_puck_matrix[16] = { 19, 6, 4,  0,  0, -4,-6,-22,  -22,-12,-
 #if WORLD_CROSSING
 static const float migration[2][2] = {{-3, 0}, {3, 0}}; // Migration vector for world crossing {team0, team1}
 #else
-static const float migration[1][2] = {{5, 0}}; // Migration vector for world obstacles {team0}
+static const float migration[1][2] = {{25, 0}}; // Migration vector for world obstacles {team0}
 #endif
 
 /*** Global variables ***/
@@ -85,18 +84,18 @@ static float      relative_pos[FLOCK_SIZE][3]; // Relative X, Z, Theta of all ro
 static float prev_relative_pos[FLOCK_SIZE][3]; // Relative X, Z, Theta of all robots at the previous time step
 static float          speed[FLOCK_SIZE][2];    // Speed of all robots
 static float relative_speed[FLOCK_SIZE][2];    // Speed of all robots relative to the current robot
+static int in_neighborhood[FLOCK_SIZE];        // Indication wheter the other robots are in the neighborhood of the current robot
 
 /*** Functions declaration ***/
 
 void init(void);
 void limit(int *number, const int limit);
+void limitf(float *number, const float limit);
 void compute_wheel_speeds(int *msl, int *msr);
 void update_self_motion(const int msl, const int msr);
 void send_ping(void);
 void process_received_ping_messages(void);
 void reynolds_rules(void);
-
-
 
 /*** Functions implementation ***/
 
@@ -143,6 +142,11 @@ void init(void)
  * Keep given integer within interval [-limit, +limit].
  */
 void limit(int *number, const int limit)
+{
+	if (*number > limit) 	*number = limit;
+	if (*number < -limit) 	*number = -limit;
+}
+void limitf(float *number, const float limit)
 {
 	if (*number > limit) 	*number = limit;
 	if (*number < -limit) 	*number = -limit;
@@ -242,12 +246,12 @@ void process_received_ping_messages(void)
 		inbuffer = (char*) wb_receiver_get_data(receiver);
 		message_direction = wb_receiver_get_emitter_direction(receiver);
 		message_rssi = wb_receiver_get_signal_strength(receiver);
-		const double x = (float)message_direction[0]; // Relative X in Webots reference frame
+		const double x = message_direction[0]; // Relative X in Webots reference frame
 		const double z = message_direction[2]; // Relative Z in Webots reference frame
 
 		// Compute orientation and distance from teammate to robot
-		theta =	-atan2(z, x);
-		theta = theta + my_position[2]; // Find the relative theta
+		theta = -atan2(z, x) - M_PI/2.0; // Reference frame of e-puck is rotated -90° from Webots reference frame
+		theta = theta + my_position[2]; // Absolute theta
 		range = sqrt((1/message_rssi));
 
 		// Teammate's ID is retrieved from the robot's name contained in the message
@@ -255,26 +259,32 @@ void process_received_ping_messages(void)
 		other_robot_team = other_robot_id/FLOCK_SIZE;
 		other_robot_id %= FLOCK_SIZE; // Normalize between 0 and FLOCK_SIZE-1
 		
-		// If robots are in the same team
-		if (robot_team == other_robot_team) {
-			
-			/* Position update */
-			
-			prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
-			prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
-			
-			relative_pos[other_robot_id][0] =  range*cos(theta); // Relative x-coordinate
-			//printf("[%d], [%d], rel_pos_X=%f \n", robot_id, other_robot_id, relative_pos[other_robot_id][0]);
-			relative_pos[other_robot_id][1] = -range*sin(theta); // Relative z-coordinate
-			//printf("[%d], [%d], rel_pos_Z=%f \n", robot_id, other_robot_id, relative_pos[other_robot_id][1]);
-			
-			//printf("[%s] from %s, x = %f, y = %f, theta = %f, my_theta = %f\n", robot_name, inbuffer, relative_pos[other_robot_id][0], relative_pos[other_robot_id][1], -atan2(y,x)*180.0/3.141592, my_position[2]*180.0/3.141592);
-			
-			/* Speed update */
-			
-			relative_speed[other_robot_id][0] = 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0]);
-			relative_speed[other_robot_id][1] = 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1]);
-		}
+		// If robots are in the same neighborhood
+		if (range < NEIGHBORHOOD_THRESHOLD) {
+          		in_neighborhood[other_robot_id] = 1;
+          		
+            		// If robots are in the same team
+            		if (robot_team == other_robot_team) {
+            			/* Position update */
+            			
+            			prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
+            			prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
+            			
+            			relative_pos[other_robot_id][0] =  range*cos(theta); // Relative x-coordinate
+            			//printf("[%d], [%d], rel_pos_X=%f \n", robot_id, other_robot_id, relative_pos[other_robot_id][0]);
+            			relative_pos[other_robot_id][1] = -range*sin(theta); // Relative z-coordinate
+            			//printf("[%d], [%d], rel_pos_Z=%f \n", robot_id, other_robot_id, relative_pos[other_robot_id][1]);
+            			
+            			//printf("[%s] from %s, x = %f, y = %f, theta = %f, my_theta = %f\n", robot_name, inbuffer, relative_pos[other_robot_id][0], relative_pos[other_robot_id][1], -atan2(y,x)*180.0/3.141592, my_position[2]*180.0/3.141592);
+            			
+            			/* Speed update */
+            			
+            			relative_speed[other_robot_id][0] = 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0]);
+            			relative_speed[other_robot_id][1] = 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1]);
+            		}
+  		} else {
+          		in_neighborhood[other_robot_id] = 0;
+  		}
 		
 		wb_receiver_next_packet(receiver);
 	}
@@ -285,46 +295,35 @@ void process_received_ping_messages(void)
  */
 void reynolds_rules(void)
 {
-	unsigned int i, j;  			// Loop counters
-	//unsigned int n_robots = 1;      // Number of neighbors
-	float t = 0.0f;
+	unsigned int i, j;  	      // Loop counters
+	unsigned int n_robots = 1;      // Number of neighbors
 	float rel_avg_loc  [2] = {0,0}; // Flock average relative positions
 	float rel_avg_speed[2] = {0,0}; // Flock average relative speeds
 	float cohesion     [2] = {0,0}; // Aggregation behavior
 	float dispersion   [2] = {0,0}; // Separation behavior
 	float consistency  [2] = {0,0}; // Alignment behavior
-	//float dist = 0.0;				// Neighborhood distance
 	
 	/* Compute averages over the flockmates in the local neighborhood */
 	for (i = 0; i < FLOCK_SIZE; i++) {
 		if (i != robot_id) { // Loop on flockmates only
 			// If robot i is in the local neighborhood (Euclidean distance)
-			//dist = sqrt(pow(relative_pos[i][0],2)+pow(relative_pos[i][1],2));
-			//if (dist < NEIGHBORHOOD_THRESHOLD) {
+			if (in_neighborhood[i]) {
 				for (j = 0; j < 2; j++) {
 					rel_avg_loc  [j] += relative_pos  [i][j];
 					rel_avg_speed[j] += relative_speed[i][j];
 				}
-				//n_robots++;
-				//printf("[%d], [%d] is IN\n",robot_id, i);
-			//}
-			//else
-				//printf("[%d], [%d] is not\n", robot_id, i);
+				n_robots++;
+			}
 		}
 	}
-	t = rel_avg_loc[1];
-	rel_avg_loc[1] = rel_avg_loc[0];
-	rel_avg_loc[0] = -t;
 	for (j = 0; j < 2; j++) {
-		//if (n_robots > 1) {
-		//	rel_avg_loc  [j] /= n_robots-1;
-		//	rel_avg_speed[j] /= n_robots-1;
-		//} else {
-		//	rel_avg_loc  [j] = 0.1;
-		//	rel_avg_speed[j] = 0.1;
-		//}
-		rel_avg_speed[j] /= FLOCK_SIZE-1;
-		rel_avg_loc[j]   /= FLOCK_SIZE-1;
+		if (n_robots > 1) {
+			rel_avg_loc  [j] /= n_robots-1;
+			rel_avg_speed[j] /= n_robots-1;
+		} else {
+			rel_avg_loc  [j] = 0;
+			rel_avg_speed[j] = 0;
+		}
 	}
 
 	/* Reynold's rules */	
@@ -343,15 +342,15 @@ void reynolds_rules(void)
 			// If neighbor i is too close (Euclidean distance)
 			if (sqrt(pow(relative_pos[i][0],2)+pow(relative_pos[i][1],2)) < RULE2_THRESHOLD) {
 				for (j = 0; j < 2; j++) {
-					dispersion[j] += 1/relative_pos[i][j]; // Relative distance to neighbor i
+          				if (relative_pos[i][j] != 0) {
+          					dispersion[j] -= 1/relative_pos[i][j]; // Relative distance to neighbor i
+          				}
 				}
 			}
 		}
 	}
 	
 	/* Rule 3 - Consistency/Alignment: match the speeds of flockmates */
-    consistency[0] = 0;
-    consistency[1] = 0;
 	for (j = 0; j < 2; j++) {
 		consistency[j] = rel_avg_speed[j]; // Average relative speed
 	}
@@ -373,10 +372,6 @@ void reynolds_rules(void)
 		speed[robot_id][0] += (migration[robot_team][0]-my_position[0]) * MIGRATION_WEIGHT;
 		speed[robot_id][1] -= (migration[robot_team][1]-my_position[1]) * MIGRATION_WEIGHT; // y-axis of Webots is inverted
     	//printf("[%d] mypos0 = %f, mypos1 = %f \n", robot_id, rel_avg_loc[0], rel_avg_loc[1]);
-    	//if (rel_avg_loc[1]>=0) { // Robot is a leader towards migration, increase urge
-      	//	speed[robot_id][0] += (migration[robot_team][0]-my_position[0]) * 0.5 * MIGRATION_WEIGHT;
-      	//	speed[robot_id][1] -= (migration[robot_team][1]-my_position[1]) * 0.5 * MIGRATION_WEIGHT;
-    	//}
 	}
 }
 
@@ -392,7 +387,6 @@ int main(int argc, char *args[])
 	int bmsl, bmsr;            // Braitenberg parameters
 	int distances[NB_SENSORS]; // Array for the distance sensor readings
 	int sum_sensors;           // Sum of all distance sensor readings
-	//int max_sens;              // Store highest sensor value
 	
 	// Initialization
 	wb_robot_init();
@@ -406,25 +400,17 @@ int main(int argc, char *args[])
 	while (wb_robot_step(TIME_STEP) != -1) {
 		bmsl = 0; bmsr = 0;
 		sum_sensors = 0;
-		//max_sens = 0;
 		
 		/* Braitenberg obstacle avoidance */
 		
 		for (i = 0; i < NB_SENSORS; i++) {
 			distances[i] = wb_distance_sensor_get_value(sensors[i]); // Read sensor values
 			sum_sensors += distances[i]; // Add up sensor values
-			//max_sens = distances[i] > max_sens ? distances[i] : max_sens; // Check if new highest sensor value
 			
 			// Weighted sum of distance sensor values for Braitenberg vehicle
-			//bmsr += e_puck_matrix[i]            * distances[i];
-			//bmsl += e_puck_matrix[i+NB_SENSORS] * distances[i];
 			bmsr += e_puck_matrix[i]            * (distances[i]/(float)MAX_SENS) * MAX_SPEED;
 			bmsl += e_puck_matrix[i+NB_SENSORS] * (distances[i]/(float)MAX_SENS) * MAX_SPEED;
 		}
-		
-		// Adapt Braitenberg values (empirical tests)
-		//bmsl /= MIN_SENS; bmsr /= MIN_SENS;
-		//bmsl += 66; bmsr += 72;
 		
 		/* Compute self position */
 		
@@ -453,10 +439,6 @@ int main(int argc, char *args[])
 		compute_wheel_speeds(&msl, &msr);
 		
 		// Adapt speed instinct to distance sensor values
-		/*if (sum_sensors > NB_SENSORS*MIN_SENS) {
-			msl -= msl*max_sens/(float)(2*MAX_SENS);
-			msr -= msr*max_sens/(float)(2*MAX_SENS);
-		}*/
 		if (sum_sensors > MIN_SENS) {
 			msl = 0.5*MAX_SPEED;
 			msr = 0.5*MAX_SPEED;
@@ -465,15 +447,18 @@ int main(int argc, char *args[])
 		// Add Braitenberg
 		msl += bmsl;
 		msr += bmsr;
-		
-		// Saturate output command
-		limit(&msl, MAX_SPEED);
-		limit(&msr, MAX_SPEED);
 		//printf("[%s] msl = %d, msr = %d\n", robot_name, msl, msr);
 		
-		// Set speed
+		// Compute wheel speed
 		msl_w = msl*MAX_SPEED_MOTOR/1000.0;
 		msr_w = msr*MAX_SPEED_MOTOR/1000.0;
+		
+		// Saturate output command (floating point comparison problem -> little correction to avoid saturation warnings)
+		limitf(&msl_w, MAX_SPEED_MOTOR-0.001);
+		limitf(&msr_w, MAX_SPEED_MOTOR-0.001);
+		printf("[%s] msr_w = %f, msr_w = %f\n", robot_name, msr_w, msr_w);
+		
+		// Set speed
 		wb_motor_set_velocity( left_motor, msl_w);
 		wb_motor_set_velocity(right_motor, msr_w);
 	}
