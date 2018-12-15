@@ -3,7 +3,7 @@
  * Authors:     Zeki Doruk Erden, Michael Perret, Mickaël Salamin
  * Date:        Fall 2018
  * Description: Controller for DIS project.
- * Version:		Finale
+ * Version:     Finale
  *************************************************************************************************/
 
 /*** Specific libraries ***/
@@ -44,14 +44,14 @@
 #define WHEEL_RADIUS    0.0205  // Wheel radius [m]
 #define DELTA_T         0.064   // Timestep [s]
 
-#define NEIGHBORHOOD_THRESHOLD 0.25      // Maximum neighborhood radius [m]
-#define RULE1_THRESHOLD        0.0       // Threshold to activate aggregation rule (default 0.20)
-#define RULE2_THRESHOLD        0.05      // Threshold to activate dispersion rule (default 0.15)
-#define RULE1_WEIGHT           (1.5/10)  // Weight of aggregation rule (default 0.6/10)
-#define RULE2_WEIGHT           (0.5/10)  // Weight of dispersion rule (default 0.02/10)
-#define RULE3_WEIGHT           (1.0/10)  // Weight of consistency rule (default 1.0/10)
-#define MIGRATION_WEIGHT       (0.02/10) // Weight of attraction towards the common goal (default 0.02/10)
-#define MIGRATORY_URGE         1         // If the robots should just go forward or move towards a specific migratory direction
+#define NEIGHBORHOOD_THRESHOLD 0.20       // Maximum neighborhood radius [m] (optimized 0.20)
+#define RULE1_THRESHOLD        0.00       // Threshold to activate aggregation rule (default 0.20, optimized 0.00)
+#define RULE2_THRESHOLD        0.05       // Threshold to activate dispersion rule (default 0.15, optimized 0.05)
+#define RULE1_WEIGHT           (1.00/10)  // Weight of aggregation rule (default 0.6/10, optimized 1.00/10)
+#define RULE2_WEIGHT           (0.05/10)  // Weight of dispersion rule (default 0.02/10, optimized 0.05/10)
+#define RULE3_WEIGHT           (1.00/10)  // Weight of consistency rule (default 1.0/10, optimized 1.00/10)
+#define MIGRATION_WEIGHT       (0.02/10)  // Weight of attraction towards the common goal (default 0.02/10, optimized 0.02/10)
+#define MIGRATORY_URGE         1          // If the robots should just go forward or move towards a specific migratory direction
 
 /*** Symbolic macros ***/
 

@@ -3,7 +3,7 @@
  * Authors:     Zeki Doruk Erden, Michael Perret, Mickaël Salamin
  * Date:        Fall 2018
  * Description: Supervisor for DIS project.
- * Version:		Finale
+ * Version:     Finale
  *************************************************************************************************/
 
 /*** Specific libraries ***/
