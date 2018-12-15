@@ -3,8 +3,9 @@
  * Authors:     Zeki Doruk Erden, Michael Perret, Mickaël Salamin
  * Date:        Fall 2018
  * Description: Controller for DIS project.
+ * Version:		Finale
  *************************************************************************************************/
-//v.pre-final
+
 /*** Specific libraries ***/
 
 #include <webots/robot.h>
@@ -27,7 +28,7 @@
 
 /*** Symbolic constants ***/
 
-#define WORLD_CROSSING 0
+#define WORLD_CROSSING 1
 
 #define TIME_STEP  64 // Step duration [ms]
 #define FLOCK_SIZE 5  // Number of robots in flock
@@ -36,20 +37,20 @@
 #define MIN_SENS   350  // Minimum sensibility value
 #define MAX_SENS   4096 // Maximum sensibility value
 
-#define MAX_SPEED       1000     // Maximum speed for differential drive [mm/s]
+#define MAX_SPEED       1000    // Maximum speed for differential drive [mm/s]
 #define MAX_SPEED_MOTOR 6.28    // Maximum speed for rotational motor [rad/s]
 #define AXLE_LENGTH     0.052   // Distance between wheels of robot [m]
 #define SPEED_UNIT_RADS 0.00628 // Conversion factor from speed unit to radian per second
 #define WHEEL_RADIUS    0.0205  // Wheel radius [m]
 #define DELTA_T         0.064   // Timestep [s]
 
-#define NEIGHBORHOOD_THRESHOLD 0.20      // Maximum neighborhood radius [m]
-#define RULE1_THRESHOLD        0.0      // Threshold to activate aggregation rule (default 0.20)
+#define NEIGHBORHOOD_THRESHOLD 0.25      // Maximum neighborhood radius [m]
+#define RULE1_THRESHOLD        0.0       // Threshold to activate aggregation rule (default 0.20)
 #define RULE2_THRESHOLD        0.05      // Threshold to activate dispersion rule (default 0.15)
-#define RULE1_WEIGHT           (1.0/10)  // Weight of aggregation rule (default 0.6/10)
-#define RULE2_WEIGHT           (0.02/10) // Weight of dispersion rule (default 0.02/10)
+#define RULE1_WEIGHT           (1.5/10)  // Weight of aggregation rule (default 0.6/10)
+#define RULE2_WEIGHT           (0.5/10)  // Weight of dispersion rule (default 0.02/10)
 #define RULE3_WEIGHT           (1.0/10)  // Weight of consistency rule (default 1.0/10)
-#define MIGRATION_WEIGHT       (0.01/10) // Weight of attraction towards the common goal (default 0.02/10)
+#define MIGRATION_WEIGHT       (0.02/10) // Weight of attraction towards the common goal (default 0.02/10)
 #define MIGRATORY_URGE         1         // If the robots should just go forward or move towards a specific migratory direction
 
 /*** Symbolic macros ***/
@@ -62,9 +63,9 @@
 static const float e_puck_matrix[16] = { 19, 6, 4,  0,  0, -4,-6,-22,  -22,-12,-6,  0, 0, 6, 12, 19}; // Maze
                                   //  R: 0   1   2   3   4    5    6    7|L: 0    1    2   3   4   5   6   7
 #if WORLD_CROSSING
-static const float migration[2][2] = {{-3, 0}, {3, 0}}; // Migration vector for world crossing {team0, team1}
+static const float migration[2][2] = {{-50, 0}, {50, 0}}; // Migration vector for world crossing {team0, team1}
 #else
-static const float migration[1][2] = {{25, 0}}; // Migration vector for world obstacles {team0}
+static const float migration[1][2] = {{50, 0}}; // Migration vector for world obstacles {team0}
 #endif
 
 /*** Global variables ***/
@@ -108,10 +109,10 @@ void init(void)
 	robot_name = (char*) wb_robot_get_name();
 	sscanf(robot_name, "epuck%d", &robot_id);
 	robot_team = robot_id/FLOCK_SIZE;
-	robot_id %= FLOCK_SIZE; // Normalize between 0 and FLOCK_SIZE-1
+	robot_id  %= FLOCK_SIZE; // Normalize between 0 and FLOCK_SIZE-1
 	
 	// Radio emitter and receiver
-	emitter = wb_robot_get_device("emitter");
+	emitter  = wb_robot_get_device("emitter");
 	receiver = wb_robot_get_device("receiver");
 	wb_receiver_enable(receiver, TIME_STEP);
 	
@@ -122,7 +123,7 @@ void init(void)
 	}
 	
 	// Wheel motors and encoders
-    left_motor = wb_robot_get_device("left wheel motor");
+    left_motor  = wb_robot_get_device("left  wheel motor");
 	right_motor = wb_robot_get_device("right wheel motor");
 	wb_motor_set_position( left_motor, INFINITY);
 	wb_motor_set_position(right_motor, INFINITY);
@@ -143,12 +144,12 @@ void init(void)
  */
 void limit(int *number, const int limit)
 {
-	if (*number > limit) 	*number = limit;
+	if (*number >  limit) 	*number =  limit;
 	if (*number < -limit) 	*number = -limit;
 }
 void limitf(float *number, const float limit)
 {
-	if (*number > limit) 	*number = limit;
+	if (*number >  limit) 	*number =  limit;
 	if (*number < -limit) 	*number = -limit;
 }
 
@@ -257,7 +258,7 @@ void process_received_ping_messages(void)
 
 		// Compute orientation and distance from teammate to robot
 		theta = -atan2(z, x) - M_PI/2.0; // Reference frame of e-puck is rotated -90° from Webots reference frame
-		theta = theta + my_position[2]; // Absolute theta
+		theta = theta + my_position[2];  // Absolute theta
 		range = sqrt((1/message_rssi));
 
 		// Teammate's ID is retrieved from the robot's name contained in the message
@@ -271,8 +272,8 @@ void process_received_ping_messages(void)
 		
 			// If robots are in the same team
 			if (robot_team == other_robot_team) {
-				/* Position update */
 				
+				/* Position update */
 				prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
 				prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
 				
@@ -284,12 +285,10 @@ void process_received_ping_messages(void)
 				//printf("[%s] from %s, x = %f, y = %f, theta = %f, my_theta = %f\n", robot_name, inbuffer, relative_pos[other_robot_id][0], relative_pos[other_robot_id][1], -atan2(y,x)*180.0/3.141592, my_position[2]*180.0/3.141592);
 				
 				/* Speed update */
-				
 				relative_speed[other_robot_id][0] = (relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0])/DELTA_T;
 				relative_speed[other_robot_id][1] = (relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1])/DELTA_T;
 			}
   		}
-		
 		wb_receiver_next_packet(receiver);
 	}
 }
@@ -299,7 +298,7 @@ void process_received_ping_messages(void)
  */
 void reynolds_rules(void)
 {
-	unsigned int i, j;  	      // Loop counters
+	unsigned int i, j;  	        // Loop counters
 	unsigned int n_robots = 1;      // Number of neighbors
 	float rel_avg_loc  [2] = {0,0}; // Flock average relative positions
 	float rel_avg_speed[2] = {0,0}; // Flock average relative speeds
@@ -405,8 +404,7 @@ int main(int argc, char *args[])
 		bmsl = 0; bmsr = 0;
 		sum_sensors = 0;
 		
-		/* Braitenberg obstacle avoidance */
-		
+		/* Braitenberg obstacle avoidance */	
 		for (i = 0; i < NB_SENSORS; i++) {
 			distances[i] = wb_distance_sensor_get_value(sensors[i]); // Read sensor values
 			sum_sensors += distances[i]; // Add up sensor values
@@ -417,7 +415,6 @@ int main(int argc, char *args[])
 		}
 		
 		/* Compute self position */
-		
 		prev_my_position[0] = my_position[0];
 		prev_my_position[1] = my_position[1];
 		
@@ -427,15 +424,14 @@ int main(int argc, char *args[])
 		speed[robot_id][1] = (my_position[1]-prev_my_position[1])/DELTA_T;
 		
 		/* Send and get information */
-		
 		// Sending a ping to other robots, so they can measure their distance to this robot
 		send_ping();
 		
 		// Receiving ping from other robots, so this robot can measure its distance to them
 		process_received_ping_messages();
 		
+
 		/* Compute self speed */
-		
 		// Reynolds' rules with all previous info (updates the speed[][] table)
 		reynolds_rules();
 		

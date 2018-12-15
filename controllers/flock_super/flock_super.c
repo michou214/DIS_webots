@@ -3,8 +3,9 @@
  * Authors:     Zeki Doruk Erden, Michael Perret, Mickaël Salamin
  * Date:        Fall 2018
  * Description: Supervisor for DIS project.
+ * Version:		Finale
  *************************************************************************************************/
-//v.pre-final
+
 /*** Specific libraries ***/
 
 #include <webots/supervisor.h>
@@ -24,7 +25,7 @@
 
 /*** Symbolic constants ***/
 
-#define WORLD_CROSSING 0
+#define WORLD_CROSSING 1
 
 #define TIME_STEP  64 // Step duration [ms]
 #define FLOCK_SIZE 5  // Number of robots in the flock
@@ -40,9 +41,9 @@
 /*** Global constants ***/
 
 #if WORLD_CROSSING
-static const float migration[2][2] = {{-100, 0}, {100, 0}}; // Migration vector for world crossing {team0, team1}
+static const float migration[2][2] = {{-50, 0}, {50, 0}}; // Migration vector for world crossing {team0, team1}
 #else
-static const float migration[1][2] = {{25, 0}}; // Migration vector for world obstacles {team0}
+static const float migration[1][2] = {{50, 0}}; // Migration vector for world obstacles {team0}
 #endif
 
 static const float velocity_max = 0.12874; // Maximum speed of a robot [m/s]
@@ -178,11 +179,10 @@ void performance(void)
 	
 	// Compute migration orientation
 	migratory_urge = atan2f(migration[super_team][1]-prev_center_of_mass[1], migration[super_team][0]-prev_center_of_mass[0]);
+	
 	// Keep migration orientation within [0, 2pi]
-	if (migratory_urge > 2*M_PI)
-		migratory_urge -= 2*M_PI;
-	if (migratory_urge < 0)
-		migratory_urge += 2*M_PI;
+	if (migratory_urge > 2*M_PI) 	migratory_urge -= 2*M_PI;
+	if (migratory_urge < 0)			migratory_urge += 2*M_PI;
 	
 	// Compute performance metrics
 	for (i = 0; i < FLOCK_SIZE; i++) {
@@ -203,7 +203,7 @@ void performance(void)
 	}
 	
 	// Update general performance
-	perf_instant = perf_orientation*perf_cohesion*perf_velocity;
+	perf_instant  = perf_orientation*perf_cohesion*perf_velocity;
 	perf_overall += perf_instant;
 	if (VERBOSE) {
 		printf("[%s] performance = %f\n", super_name, perf_instant);
@@ -253,6 +253,8 @@ void log_perf_overall(void)
 	fclose(file);
 }
 
+
+
 /*
  * Main function.
  */
@@ -266,7 +268,7 @@ int main(int argc, char *args[])
 	init();
 	
 	// Variables initialization
-	time_steps = 0;
+	time_steps   = 0;
 	perf_overall = 0;
 	
 	// Storage reset
