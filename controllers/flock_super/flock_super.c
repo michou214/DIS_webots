@@ -2,8 +2,8 @@
  * File:        flock_super.c
  * Authors:     Zeki Doruk Erden, Michael Perret, Mickaël Salamin
  * Date:        Fall 2018
- * Description: Supervisor for DIS project.
- * Version:     Finale
+ * Description: Supervisor for DIS project on Webots simulation
+ * Version:     Final
  *************************************************************************************************/
 
 /*** Specific libraries ***/

@@ -2,8 +2,8 @@
  * File:        flock_controller.c
  * Authors:     Zeki Doruk Erden, Michael Perret, Mickaël Salamin
  * Date:        Fall 2018
- * Description: Controller for DIS project.
- * Version:     Finale
+ * Description: Controller for DIS project on Webots simulation
+ * Version:     Final
  *************************************************************************************************/
 
 /*** Specific libraries ***/
@@ -59,8 +59,7 @@
 
 /*** Global constants ***/
 
-//static const int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // Weights for obstacle avoidance
-static const float e_puck_matrix[16] = { 19, 6, 4,  0,  0, -4,-6,-22,  -22,-12,-6,  0, 0, 6, 12, 19}; // Maze
+static const float e_puck_matrix[16] = { 19, 6, 4,  0,  0, -4,-6,-22,  -22,-12,-6,  0, 0, 6, 12, 19}; // Weights for obstacle avoidance
                                   //  R: 0   1   2   3   4    5    6    7|L: 0    1    2   3   4   5   6   7
 #if WORLD_CROSSING
 static const float migration[2][2] = {{-50, 0}, {50, 0}}; // Migration vector for world crossing {team0, team1}
@@ -456,7 +455,7 @@ int main(int argc, char *args[])
 		// Saturate output command (floating point comparison problem -> little correction to avoid saturation warnings)
 		limitf(&msl_w, MAX_SPEED_MOTOR-0.001);
 		limitf(&msr_w, MAX_SPEED_MOTOR-0.001);
-		printf("[%s] msr_w = %f, msr_w = %f\n", robot_name, msr_w, msr_w);
+		//printf("[%s] msr_w = %f, msr_w = %f\n", robot_name, msr_w, msr_w);
 		
 		// Set speed
 		wb_motor_set_velocity( left_motor, msl_w);
