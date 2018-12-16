@@ -44,7 +44,7 @@
 #define WHEEL_RADIUS    0.0205  // Wheel radius [m]
 #define DELTA_T         0.064   // Timestep [s]
 
-#define NEIGHBORHOOD_THRESHOLD 0.20       // Maximum neighborhood radius [m] (optimized 0.20)
+#define NEIGHBORHOOD_THRESHOLD 0.25       // Maximum neighborhood radius [m] (optimized 0.20)
 #define RULE1_THRESHOLD        0.00       // Threshold to activate aggregation rule (default 0.20, optimized 0.00)
 #define RULE2_THRESHOLD        0.05       // Threshold to activate dispersion rule (default 0.15, optimized 0.05)
 #define RULE1_WEIGHT           (1.00/10)  // Weight of aggregation rule (default 0.6/10, optimized 1.00/10)
